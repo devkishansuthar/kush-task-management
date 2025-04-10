@@ -61,7 +61,7 @@ const Calendar: React.FC = () => {
       <PageHeader
         title="Calendar"
         description="View and manage your schedule"
-        icon={<Icons.calendar className="h-6 w-6 mr-2" />}
+        icon={<Icons.calendar className="h-6 w-6" />}
       />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">

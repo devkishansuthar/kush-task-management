@@ -12,7 +12,7 @@ const Settings: React.FC = () => {
       <PageHeader
         title="Settings"
         description="Manage your account settings and preferences"
-        icon={<Icons.settings className="h-6 w-6 mr-2" />}
+        icon={<Icons.settings className="h-6 w-6" />}
       />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">

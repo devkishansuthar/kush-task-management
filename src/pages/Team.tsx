@@ -52,7 +52,7 @@ const Team: React.FC = () => {
       <PageHeader
         title="Team"
         description="Manage your team members and their access"
-        icon={<Icons.users className="h-6 w-6 mr-2" />}
+        icon={<Icons.users className="h-6 w-6" />}
         action={{
           label: "Add Team Member",
           onClick: () => {},

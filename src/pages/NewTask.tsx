@@ -58,7 +58,7 @@ const NewTask: React.FC = () => {
       <PageHeader
         title="Create New Task"
         description="Add a new task to your project"
-        icon={<Icons.add className="h-6 w-6 mr-2" />}
+        icon={<Icons.add className="h-6 w-6" />}
       />
       
       <Card className="mt-6">

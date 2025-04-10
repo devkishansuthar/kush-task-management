@@ -13,7 +13,7 @@ const Companies: React.FC = () => {
       <PageHeader
         title="Companies"
         description="Manage companies on the platform"
-        icon={<Icons.building className="h-6 w-6 mr-2" />}
+        icon={<Icons.building className="h-6 w-6" />}
         action={{
           label: "Add Company",
           onClick: () => {},

@@ -7,6 +7,7 @@ import { Icons } from "./Icons";
 interface PageHeaderProps {
   title: string;
   description?: string;
+  icon?: React.ReactNode;
   action?: {
     label: string;
     onClick: () => void;
@@ -17,17 +18,21 @@ interface PageHeaderProps {
 const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   description,
+  icon,
   action,
 }) => {
   const { theme, toggleTheme } = useTheme();
   
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 md:py-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
-        {description && (
-          <p className="text-muted-foreground mt-1">{description}</p>
-        )}
+      <div className="flex items-center">
+        {icon && <span className="mr-2">{icon}</span>}
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
+          {description && (
+            <p className="text-muted-foreground mt-1">{description}</p>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <Button

@@ -56,7 +56,7 @@ const TodoLists: React.FC = () => {
       <PageHeader
         title="To-Do Lists"
         description="Manage your personal and team tasks"
-        icon={<Icons.todos className="h-6 w-6 mr-2" />}
+        icon={<Icons.todos className="h-6 w-6" />}
       />
       
       <Tabs defaultValue="personal" className="mt-6" onValueChange={setActiveTab}>

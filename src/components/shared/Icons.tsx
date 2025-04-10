@@ -29,6 +29,10 @@ import {
   Filter,
   Loader2,
   Bell,
+  Building2,
+  Lock,
+  PenSquare,
+  Eye,
 } from "lucide-react";
 
 export const Icons = {
@@ -61,4 +65,9 @@ export const Icons = {
   filter: Filter,
   spinner: Loader2,
   notification: Bell,
+  building: Building2,
+  lock: Lock,
+  edit: PenSquare,
+  view: Eye,
+  bell: Bell,
 };

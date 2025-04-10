@@ -3,7 +3,7 @@ import React from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, LineChart } from "@/components/ui/chart";
+import { BarChart, LineChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const Analytics: React.FC = () => {
   // Mock data for charts
@@ -28,7 +28,6 @@ const Analytics: React.FC = () => {
       <PageHeader
         title="Analytics"
         description="Track your team's performance and productivity"
-        icon={<Icons.chart className="h-6 w-6 mr-2" />}
       />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
@@ -37,14 +36,17 @@ const Analytics: React.FC = () => {
             <CardTitle>Task Completion Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <LineChart
-              data={taskCompletionData}
-              categories={['completed', 'total']}
-              index="name"
-              colors={['blue', 'gray']}
-              yAxisWidth={40}
-              className="h-72"
-            />
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={taskCompletionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="completed" stroke="#3b82f6" />
+                <Line type="monotone" dataKey="total" stroke="#9ca3af" />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
         
@@ -53,14 +55,16 @@ const Analytics: React.FC = () => {
             <CardTitle>Tasks by Priority</CardTitle>
           </CardHeader>
           <CardContent>
-            <BarChart
-              data={tasksByPriorityData}
-              categories={['count']}
-              index="name"
-              colors={['blue']}
-              yAxisWidth={40}
-              className="h-72"
-            />
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={tasksByPriorityData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#3b82f6" />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
