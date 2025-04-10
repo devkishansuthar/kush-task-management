@@ -11,6 +11,14 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Tasks from "@/pages/Tasks";
 import NotFound from "@/pages/NotFound";
+import Index from "@/pages/Index";
+import Settings from "@/pages/Settings";
+import Analytics from "@/pages/Analytics";
+import Team from "@/pages/Team";
+import TodoLists from "@/pages/TodoLists";
+import NewTask from "@/pages/NewTask";
+import Calendar from "@/pages/Calendar";
+import Companies from "@/pages/Companies";
 
 const queryClient = new QueryClient();
 
@@ -24,13 +32,19 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Index />} />
               
               {/* Protected routes */}
               <Route element={<AppLayout />}>
-                <Route path="/" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/tasks" element={<Tasks />} />
-                {/* Add more routes as needed */}
+                <Route path="/tasks/new" element={<NewTask />} />
+                <Route path="/todos" element={<TodoLists />} />
+                <Route path="/calendar" element={<Calendar />} />
+                <Route path="/team" element={<Team />} />
+                <Route path="/companies" element={<Companies />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />
