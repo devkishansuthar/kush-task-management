@@ -1,4 +1,3 @@
-
 import { Task, TaskPriority, TaskStatus } from "@/types/task";
 import { Company } from "@/types/company";
 
@@ -326,7 +325,7 @@ export const mockActivities = [
     action: "created a new task",
     target: "Implement dashboard analytics",
     timestamp: "1 hour ago",
-    type: "task",
+    type: "task" as const,
   },
   {
     id: "activity2",
@@ -336,7 +335,7 @@ export const mockActivities = [
     action: "completed a todo item",
     target: "Design chart components",
     timestamp: "3 hours ago",
-    type: "todo",
+    type: "todo" as const,
   },
   {
     id: "activity3",
@@ -346,7 +345,7 @@ export const mockActivities = [
     action: "added a comment on",
     target: "Implement dashboard analytics",
     timestamp: "5 hours ago",
-    type: "comment",
+    type: "comment" as const,
   },
   {
     id: "activity4",
@@ -356,7 +355,7 @@ export const mockActivities = [
     action: "marked task as completed",
     target: "Update user documentation",
     timestamp: "1 day ago",
-    type: "status",
+    type: "status" as const,
   },
   {
     id: "activity5",
@@ -366,7 +365,7 @@ export const mockActivities = [
     action: "assigned a task to",
     target: "Regular User",
     timestamp: "2 days ago",
-    type: "task",
+    type: "task" as const,
   },
 ];
 
