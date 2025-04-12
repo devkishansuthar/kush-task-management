@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
@@ -65,16 +64,12 @@ const Team: React.FC = () => {
     }
   });
 
-  // Load team members
   useEffect(() => {
-    // For now, we'll use mock data
-    // In a real app, you would fetch this from Supabase/API
     fetchTeamMembers();
   }, []);
 
   const fetchTeamMembers = () => {
     setLoading(true);
-    // Mock data - in a real app, you would fetch from database
     const mockTeamMembers = [
       {
         id: "1",
@@ -119,7 +114,7 @@ const Team: React.FC = () => {
 
   const handleAddMember = (data: TeamMemberFormValues) => {
     const newMember: TeamMember = {
-      id: `${Date.now()}`, // In a real app, this would be a UUID from the database
+      id: `${Date.now()}`,
       name: data.name,
       role: data.role,
       email: data.email,
@@ -252,7 +247,6 @@ const Team: React.FC = () => {
         ))}
       </div>
 
-      {/* Add Team Member Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -331,7 +325,6 @@ const Team: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Team Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -410,7 +403,6 @@ const Team: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Team Member Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

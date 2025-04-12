@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
@@ -13,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Todo, TaskStatus, TaskPriority } from "@/types/task";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { mapDbTodoToTodo } from "@/utils/supabaseAdapters";
 
 const TaskDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -67,7 +67,9 @@ const TaskDetails: React.FC = () => {
           .eq('task_id', id);
         
         if (todosData) {
-          setTodos(todosData);
+          // Map the database todo objects to the Todo interface
+          const mappedTodos: Todo[] = todosData.map((todo) => mapDbTodoToTodo(todo));
+          setTodos(mappedTodos);
         }
       }
     } catch (error) {
@@ -100,7 +102,8 @@ const TaskDetails: React.FC = () => {
       if (error) throw error;
       
       if (data && data.length > 0) {
-        setTodos([...todos, data[0]]);
+        const newMappedTodo = mapDbTodoToTodo(data[0]);
+        setTodos([...todos, newMappedTodo]);
         setNewTodo("");
       }
     } catch (error) {
@@ -137,27 +140,6 @@ const TaskDetails: React.FC = () => {
     }
   };
   
-  if (loading) {
-    return (
-      <div className="container max-w-7xl mx-auto px-4 py-12 flex justify-center">
-        <Icons.spinner className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-  
-  if (!task) {
-    return (
-      <div className="container max-w-7xl mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold mb-4">Task Not Found</h1>
-        <p className="mb-6">The task you're looking for doesn't exist or has been removed.</p>
-        <Button onClick={() => navigate("/tasks")}>
-          <Icons.chevronLeft className="mr-2 h-4 w-4" />
-          Back to Tasks
-        </Button>
-      </div>
-    );
-  }
-  
   const getStatusVariant = (status: TaskStatus) => {
     switch (status) {
       case "completed":
@@ -188,6 +170,27 @@ const TaskDetails: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="container max-w-7xl mx-auto px-4 py-12 flex justify-center">
+        <Icons.spinner className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+  
+  if (!task) {
+    return (
+      <div className="container max-w-7xl mx-auto px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold mb-4">Task Not Found</h1>
+        <p className="mb-6">The task you're looking for doesn't exist or has been removed.</p>
+        <Button onClick={() => navigate("/tasks")}>
+          <Icons.chevronLeft className="mr-2 h-4 w-4" />
+          Back to Tasks
+        </Button>
+      </div>
+    );
+  }
+  
   return (
     <div className="container max-w-7xl mx-auto px-4">
       <PageHeader

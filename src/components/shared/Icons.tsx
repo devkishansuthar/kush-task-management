@@ -35,6 +35,8 @@ import {
   Eye,
   ArrowUpDown,
   Download,
+  UserPlus,
+  Trash,
 } from "lucide-react";
 
 export const Icons = {
@@ -75,4 +77,6 @@ export const Icons = {
   sort: ArrowUpDown,
   fileText: FileText,
   download: Download,
+  userPlus: UserPlus,
+  trash: Trash,
 };
