@@ -9,7 +9,206 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      attachments: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          size: number
+          task_id: string | null
+          type: string
+          uploaded_by_id: string | null
+          uploaded_by_name: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          size: number
+          task_id?: string | null
+          type: string
+          uploaded_by_id?: string | null
+          uploaded_by_name: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          size?: number
+          task_id?: string | null
+          type?: string
+          uploaded_by_id?: string | null
+          uploaded_by_name?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          task_id: string | null
+          user_avatar: string | null
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          task_id?: string | null
+          user_avatar?: string | null
+          user_id?: string | null
+          user_name: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          task_id?: string | null
+          user_avatar?: string | null
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          employee_count: number | null
+          id: string
+          logo: string | null
+          name: string
+          phone: string | null
+          status: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          employee_count?: number | null
+          id?: string
+          logo?: string | null
+          name: string
+          phone?: string | null
+          status: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          employee_count?: number | null
+          id?: string
+          logo?: string | null
+          name?: string
+          phone?: string | null
+          status?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assignee_id: string | null
+          company_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          reporter_id: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority: string
+          reporter_id?: string | null
+          status: string
+          title: string
+        }
+        Update: {
+          assignee_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          reporter_id?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      todos: {
+        Row: {
+          completed: boolean | null
+          content: string
+          created_at: string
+          id: string
+          task_id: string | null
+        }
+        Insert: {
+          completed?: boolean | null
+          content: string
+          created_at?: string
+          id?: string
+          task_id?: string | null
+        }
+        Update: {
+          completed?: boolean | null
+          content?: string
+          created_at?: string
+          id?: string
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "todos_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

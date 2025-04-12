@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -7,30 +7,60 @@ import PageHeader from "@/components/shared/PageHeader";
 import TaskCard from "@/components/tasks/TaskCard";
 import TaskFilters from "@/components/tasks/TaskFilters";
 import { Icons } from "@/components/shared/Icons";
-import { mockTasks } from "@/services/mockData";
 import { Task } from "@/types/task";
+import { supabase } from "@/integrations/supabase/client";
+import { mapDbTaskToTask } from "@/utils/supabaseAdapters";
+import { useToast } from "@/hooks/use-toast";
 
 const Tasks: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
-  // Get tasks for the current user based on role
-  const getFilteredTasks = () => {
-    if (user?.role === "superadmin") {
-      return mockTasks;
-    } else if (user?.companyId) {
-      return mockTasks.filter(task => task.companyId === user.companyId);
-    }
-    return [];
-  };
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const [tasks, setTasks] = useState<Task[]>(getFilteredTasks());
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
     priority: "all",
     assignee: "all",
   });
+  
+  // Fetch tasks from Supabase
+  useEffect(() => {
+    fetchTasks();
+  }, [user]);
+  
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch all tasks - in a real app you'd want to paginate this
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*');
+      
+      if (error) throw error;
+      
+      // Process the data
+      if (data) {
+        const formattedTasks = data.map(task => mapDbTaskToTask(task));
+        setAllTasks(formattedTasks);
+        setTasks(formattedTasks);
+      }
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load tasks",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Handle search
   const handleSearch = (term: string) => {
@@ -47,7 +77,7 @@ const Tasks: React.FC = () => {
   
   // Apply all filters
   const applyFilters = (currentFilters: typeof filters) => {
-    let filteredTasks = getFilteredTasks();
+    let filteredTasks = [...allTasks];
     
     // Apply search filter
     if (currentFilters.search) {
@@ -55,7 +85,7 @@ const Tasks: React.FC = () => {
       filteredTasks = filteredTasks.filter(
         task => 
           task.title.toLowerCase().includes(searchTerm) || 
-          task.description.toLowerCase().includes(searchTerm)
+          (task.description && task.description.toLowerCase().includes(searchTerm))
       );
     }
     
@@ -73,7 +103,7 @@ const Tasks: React.FC = () => {
       );
     }
     
-    // Apply assignee filter
+    // Apply assignee filter - simplified since we don't have real user data yet
     if (currentFilters.assignee === "me") {
       filteredTasks = filteredTasks.filter(
         task => task.assignee.id === user?.id
@@ -95,7 +125,7 @@ const Tasks: React.FC = () => {
       priority: "all",
       assignee: "all",
     });
-    setTasks(getFilteredTasks());
+    setTasks(allTasks);
   };
 
   return (
@@ -114,9 +144,14 @@ const Tasks: React.FC = () => {
         onSearch={handleSearch}
         onFilterChange={handleFilterChange}
         onClearFilters={handleClearFilters}
+        filters={filters}
       />
       
-      {tasks.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <Icons.spinner className="h-8 w-8 animate-spin" />
+        </div>
+      ) : tasks.length === 0 ? (
         <div className="text-center py-12">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
             <Icons.tasks className="h-8 w-8 text-muted-foreground" />

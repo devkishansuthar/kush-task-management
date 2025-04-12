@@ -10,10 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { mapCompanyToDbCompany } from "@/utils/supabaseAdapters";
 
 const AddCompany: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [company, setCompany] = useState({
     name: "",
@@ -29,7 +32,7 @@ const AddCompany: React.FC = () => {
     setCompany({ ...company, [field]: value });
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
@@ -42,14 +45,56 @@ const AddCompany: React.FC = () => {
       return;
     }
     
-    // Success - in a real app, this would save to the database
-    toast({
-      title: "Success",
-      description: "Company created successfully",
-    });
+    if (!company.status) {
+      toast({
+        title: "Error",
+        description: "Company status is required",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Navigate back to companies page
-    navigate('/companies');
+    try {
+      setIsSubmitting(true);
+      
+      // Prepare data for Supabase
+      const dbCompany = mapCompanyToDbCompany({
+        id: "",
+        name: company.name,
+        email: company.email,
+        phone: company.phone,
+        website: company.website,
+        address: company.address,
+        employeeCount: company.employeeCount ? parseInt(company.employeeCount) : 0,
+        status: company.status as "active" | "inactive" | "suspended",
+        createdAt: new Date().toISOString(),
+      });
+      
+      // Insert into Supabase
+      const { error } = await supabase
+        .from('companies')
+        .insert(dbCompany);
+      
+      if (error) throw error;
+      
+      // Success notification
+      toast({
+        title: "Success",
+        description: "Company created successfully",
+      });
+      
+      // Navigate back to companies page
+      navigate('/companies');
+    } catch (error) {
+      console.error("Error creating company:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create company",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -147,10 +192,24 @@ const AddCompany: React.FC = () => {
             </div>
             
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" type="button" onClick={() => navigate('/companies')}>
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={() => navigate('/companies')}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Create Company</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Company"
+                )}
+              </Button>
             </div>
           </form>
         </CardContent>

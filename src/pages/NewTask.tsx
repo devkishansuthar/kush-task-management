@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
@@ -13,24 +13,55 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const NewTask: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
   
   const [task, setTask] = useState({
     title: "",
     description: "",
     priority: "",
+    status: "todo",
     dueDate: null as Date | null,
     assignee: "",
+    companyId: "",
   });
+  
+  // Fetch companies from Supabase
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('id, name');
+        
+        if (error) throw error;
+        
+        if (data) {
+          setCompanies(data);
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load companies",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    fetchCompanies();
+  }, [toast]);
   
   const updateTask = (field: string, value: any) => {
     setTask({ ...task, [field]: value });
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
@@ -43,14 +74,60 @@ const NewTask: React.FC = () => {
       return;
     }
     
-    // Success - in a real app, this would save to the database
-    toast({
-      title: "Success",
-      description: "Task created successfully",
-    });
+    if (!task.priority) {
+      toast({
+        title: "Error",
+        description: "Task priority is required",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Navigate back to tasks page
-    navigate('/tasks');
+    try {
+      setIsSubmitting(true);
+      
+      // Prepare data for Supabase
+      const newTask = {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status || "todo",
+        due_date: task.dueDate ? task.dueDate.toISOString() : null,
+        assignee_id: task.assignee || null,
+        company_id: task.companyId || null,
+        reporter_id: null, // In a real app, this would be the current user's ID
+      };
+      
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(newTask)
+        .select();
+      
+      if (error) throw error;
+      
+      // Success notification
+      toast({
+        title: "Success",
+        description: "Task created successfully",
+      });
+      
+      // Navigate to the task details page if we have the new task ID
+      if (data && data[0] && data[0].id) {
+        navigate(`/tasks/${data[0].id}`);
+      } else {
+        navigate('/tasks');
+      }
+    } catch (error) {
+      console.error("Error creating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create task",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -85,6 +162,46 @@ const NewTask: React.FC = () => {
               />
             </div>
             
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="company">Company</Label>
+                <Select 
+                  value={task.companyId} 
+                  onValueChange={(value) => updateTask("companyId", value)}
+                >
+                  <SelectTrigger id="company">
+                    <SelectValue placeholder="Select company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select 
+                  value={task.status} 
+                  onValueChange={(value) => updateTask("status", value)}
+                >
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todo">To Do</SelectItem>
+                    <SelectItem value="in progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="blocked">Blocked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority</Label>
@@ -99,6 +216,7 @@ const NewTask: React.FC = () => {
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -136,6 +254,7 @@ const NewTask: React.FC = () => {
                     <SelectValue placeholder="Assign to" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="">Unassigned</SelectItem>
                     <SelectItem value="user1">Alex Johnson</SelectItem>
                     <SelectItem value="user2">Sarah Williams</SelectItem>
                     <SelectItem value="user3">Michael Chen</SelectItem>
@@ -146,10 +265,24 @@ const NewTask: React.FC = () => {
             </div>
             
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" type="button" onClick={() => navigate('/tasks')}>
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={() => navigate('/tasks')}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Create Task</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Task"
+                )}
+              </Button>
             </div>
           </form>
         </CardContent>
