@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
@@ -17,10 +16,8 @@ const TaskDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  // Find the task by ID
   const task = mockTasks.find(task => task.id === id);
   
-  // Find the company
   const company = task?.companyId ? 
     mockCompanies.find(company => company.id === task.companyId) : 
     undefined;
@@ -41,7 +38,6 @@ const TaskDetails: React.FC = () => {
     );
   }
   
-  // Get status badge variant
   const getStatusVariant = (status: TaskStatus) => {
     switch (status) {
       case "completed":
@@ -57,7 +53,6 @@ const TaskDetails: React.FC = () => {
     }
   };
   
-  // Get priority badge variant
   const getPriorityVariant = (priority: TaskPriority) => {
     switch (priority) {
       case "low":
@@ -65,7 +60,7 @@ const TaskDetails: React.FC = () => {
       case "medium":
         return "secondary";
       case "high":
-        return "warning";
+        return "default";
       case "urgent":
         return "destructive";
       default:
