@@ -27,8 +27,8 @@ const NewTask: React.FC = () => {
     priority: "",
     status: "todo",
     dueDate: null as Date | null,
-    assignee: "",
-    companyId: "",
+    assignee: null as string | null,
+    companyId: null as string | null,
   });
   
   // Fetch companies from Supabase
@@ -93,7 +93,7 @@ const NewTask: React.FC = () => {
         priority: task.priority,
         status: task.status || "todo",
         due_date: task.dueDate ? task.dueDate.toISOString() : null,
-        assignee_id: task.assignee || null,
+        assignee_id: null, // Not using the string IDs like "user1" anymore
         company_id: task.companyId || null,
         reporter_id: null, // In a real app, this would be the current user's ID
       };
@@ -166,8 +166,8 @@ const NewTask: React.FC = () => {
               <div className="space-y-2">
                 <Label htmlFor="company">Company</Label>
                 <Select 
-                  value={task.companyId} 
-                  onValueChange={(value) => updateTask("companyId", value)}
+                  value={task.companyId || undefined} 
+                  onValueChange={(value) => updateTask("companyId", value === "none" ? null : value)}
                 >
                   <SelectTrigger id="company">
                     <SelectValue placeholder="Select company" />
@@ -247,18 +247,16 @@ const NewTask: React.FC = () => {
               <div className="space-y-2">
                 <Label htmlFor="assignee">Assignee</Label>
                 <Select 
-                  value={task.assignee} 
-                  onValueChange={(value) => updateTask("assignee", value)}
+                  value={task.assignee || "unassigned"} 
+                  onValueChange={(value) => updateTask("assignee", value === "unassigned" ? null : value)}
                 >
                   <SelectTrigger id="assignee">
                     <SelectValue placeholder="Assign to" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>
-                    <SelectItem value="user1">Alex Johnson</SelectItem>
-                    <SelectItem value="user2">Sarah Williams</SelectItem>
-                    <SelectItem value="user3">Michael Chen</SelectItem>
-                    <SelectItem value="user4">Emily Davis</SelectItem>
+                    {/* We're not using these string values for now until we have proper UUIDs */}
+                    {/* For a real app, this would be populated from the database */}
                   </SelectContent>
                 </Select>
               </div>
