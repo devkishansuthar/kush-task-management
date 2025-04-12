@@ -9,14 +9,21 @@ interface TaskFiltersProps {
   onSearch: (term: string) => void;
   onFilterChange: (filter: string, value: string) => void;
   onClearFilters: () => void;
+  filters: {
+    search: string;
+    status: string;
+    priority: string;
+    assignee: string;
+  };
 }
 
 const TaskFilters: React.FC<TaskFiltersProps> = ({
   onSearch,
   onFilterChange,
   onClearFilters,
+  filters,
 }) => {
-  const [searchTerm, setSearchTerm] = React.useState("");
+  const [searchTerm, setSearchTerm] = React.useState(filters.search || "");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,14 +48,17 @@ const TaskFilters: React.FC<TaskFiltersProps> = ({
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-full sm:w-auto">
-          <Select onValueChange={(value) => onFilterChange("status", value)}>
+          <Select 
+            value={filters.status} 
+            onValueChange={(value) => onFilterChange("status", value)}
+          >
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="todo">To Do</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="in progress">In Progress</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="blocked">Blocked</SelectItem>
             </SelectContent>
@@ -56,7 +66,10 @@ const TaskFilters: React.FC<TaskFiltersProps> = ({
         </div>
 
         <div className="w-full sm:w-auto">
-          <Select onValueChange={(value) => onFilterChange("priority", value)}>
+          <Select 
+            value={filters.priority} 
+            onValueChange={(value) => onFilterChange("priority", value)}
+          >
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
@@ -71,7 +84,10 @@ const TaskFilters: React.FC<TaskFiltersProps> = ({
         </div>
 
         <div className="w-full sm:w-auto">
-          <Select onValueChange={(value) => onFilterChange("assignee", value)}>
+          <Select 
+            value={filters.assignee} 
+            onValueChange={(value) => onFilterChange("assignee", value)}
+          >
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Assignee" />
             </SelectTrigger>
