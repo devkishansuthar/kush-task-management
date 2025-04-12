@@ -1,25 +1,78 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockCompanies, mockTasks } from "@/services/mockData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TaskCard from "@/components/tasks/TaskCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { mapDbCompanyToCompany } from "@/utils/supabaseAdapters";
 
 const CompanyDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
-  // Find the company by ID
-  const company = mockCompanies.find(company => company.id === id);
+  const [company, setCompany] = useState<any>(null);
+  const [companyTasks, setCompanyTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Get tasks for this company
-  const companyTasks = mockTasks.filter(task => task.companyId === id);
+  useEffect(() => {
+    if (id) {
+      fetchCompanyDetails();
+    }
+  }, [id]);
+  
+  const fetchCompanyDetails = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch company details
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (companyError) throw companyError;
+      
+      if (companyData) {
+        setCompany(mapDbCompanyToCompany(companyData));
+        
+        // Fetch tasks for this company
+        const { data: tasksData, error: tasksError } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('company_id', id);
+        
+        if (tasksError) throw tasksError;
+        
+        setCompanyTasks(tasksData || []);
+      }
+    } catch (error) {
+      console.error("Error fetching company details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load company details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  if (loading) {
+    return (
+      <div className="container max-w-7xl mx-auto px-4 py-12 flex justify-center">
+        <Icons.spinner className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
   
   if (!company) {
     return (
@@ -103,7 +156,7 @@ const CompanyDetails: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Created</p>
-                  <p className="text-sm font-medium">{company.createdAt}</p>
+                  <p className="text-sm font-medium">{new Date(company.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -140,11 +193,15 @@ const CompanyDetails: React.FC = () => {
                       key={task.id}
                       id={task.id}
                       title={task.title}
-                      description={task.description}
+                      description={task.description || ""}
                       status={task.status}
                       priority={task.priority}
-                      dueDate={task.dueDate}
-                      assignee={task.assignee}
+                      dueDate={task.due_date}
+                      assignee={{
+                        id: task.assignee_id || "",
+                        name: "Unassigned",
+                        avatar: ""
+                      }}
                     />
                   ))}
                 </div>

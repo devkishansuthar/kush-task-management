@@ -173,7 +173,7 @@ const NewTask: React.FC = () => {
                     <SelectValue placeholder="Select company" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {companies.map((company) => (
                       <SelectItem key={company.id} value={company.id}>
                         {company.name}
@@ -254,7 +254,7 @@ const NewTask: React.FC = () => {
                     <SelectValue placeholder="Assign to" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
                     <SelectItem value="user1">Alex Johnson</SelectItem>
                     <SelectItem value="user2">Sarah Williams</SelectItem>
                     <SelectItem value="user3">Michael Chen</SelectItem>
