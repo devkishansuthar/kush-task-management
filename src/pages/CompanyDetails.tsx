@@ -12,16 +12,53 @@ import TaskCard from "@/components/tasks/TaskCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { mapDbCompanyToCompany } from "@/utils/supabaseAdapters";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { Company } from "@/types/company";
+import { Label } from "@/components/ui/label";
+
+interface CompanyFormValues {
+  name: string;
+  email: string;
+  phone: string;
+  website: string;
+  address: string;
+  employeeCount: number;
+  status: "active" | "inactive" | "suspended";
+}
 
 const CompanyDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [company, setCompany] = useState<any>(null);
+  const [company, setCompany] = useState<Company | null>(null);
   const [companyTasks, setCompanyTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
+  const editForm = useForm<CompanyFormValues>({
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      website: "",
+      address: "",
+      employeeCount: 0,
+      status: "active"
+    }
+  });
+
   useEffect(() => {
     if (id) {
       fetchCompanyDetails();
@@ -42,7 +79,8 @@ const CompanyDetails: React.FC = () => {
       if (companyError) throw companyError;
       
       if (companyData) {
-        setCompany(mapDbCompanyToCompany(companyData));
+        const mappedCompany = mapDbCompanyToCompany(companyData);
+        setCompany(mappedCompany);
         
         // Fetch tasks for this company
         const { data: tasksData, error: tasksError } = await supabase
@@ -63,6 +101,68 @@ const CompanyDetails: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const openEditDialog = () => {
+    if (!company) return;
+    
+    editForm.reset({
+      name: company.name,
+      email: company.email || "",
+      phone: company.phone || "",
+      website: company.website || "",
+      address: company.address || "",
+      employeeCount: company.employeeCount,
+      status: company.status
+    });
+    
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleEditCompany = async (data: CompanyFormValues) => {
+    if (!company || !id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          website: data.website,
+          address: data.address,
+          employee_count: data.employeeCount,
+          status: data.status
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      // Update local state with the new values
+      setCompany({
+        ...company,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        website: data.website,
+        address: data.address,
+        employeeCount: data.employeeCount,
+        status: data.status
+      });
+      
+      setIsEditDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Company information updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating company:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update company information",
+        variant: "destructive",
+      });
     }
   };
   
@@ -95,7 +195,7 @@ const CompanyDetails: React.FC = () => {
         icon={<Icons.building className="h-6 w-6" />}
         action={{
           label: "Edit Company",
-          onClick: () => {},
+          onClick: openEditDialog,
           icon: <Icons.edit className="mr-2 h-4 w-4" />,
         }}
       />
@@ -274,6 +374,146 @@ const CompanyDetails: React.FC = () => {
           </Tabs>
         </div>
       </div>
+      
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Company</DialogTitle>
+            <DialogDescription>
+              Update company information and settings
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(handleEditCompany)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter company name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="company@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1 (555) 123-4567" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={editForm.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="123 Main St, City, Country" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="employeeCount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Number of Employees</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="0"
+                          {...field} 
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="suspended">Suspended</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

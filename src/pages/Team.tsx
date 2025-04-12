@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import {
   DialogHeader, 
   DialogTitle,
   DialogFooter,
-  DialogTrigger 
+  DialogDescription 
 } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -68,48 +69,60 @@ const Team: React.FC = () => {
     fetchTeamMembers();
   }, []);
 
-  const fetchTeamMembers = () => {
+  const fetchTeamMembers = async () => {
     setLoading(true);
-    const mockTeamMembers = [
-      {
-        id: "1",
-        name: "Alex Johnson",
-        role: "Product Manager",
-        email: "alex@example.com",
-        avatarUrl: "",
-        status: "active",
-        tasksCompleted: 24,
-      },
-      {
-        id: "2",
-        name: "Sarah Williams",
-        role: "UX Designer",
-        email: "sarah@example.com",
-        avatarUrl: "",
-        status: "active",
-        tasksCompleted: 18,
-      },
-      {
-        id: "3",
-        name: "Michael Chen",
-        role: "Frontend Developer",
-        email: "michael@example.com",
-        avatarUrl: "",
-        status: "active",
-        tasksCompleted: 32,
-      },
-      {
-        id: "4",
-        name: "Emily Davis",
-        role: "Backend Developer",
-        email: "emily@example.com",
-        avatarUrl: "",
-        status: "inactive",
-        tasksCompleted: 15,
-      },
-    ];
-    setTeamMembers(mockTeamMembers);
-    setLoading(false);
+    try {
+      // In a real application, this would fetch from Supabase
+      // For now using mock data
+      const mockTeamMembers = [
+        {
+          id: "1",
+          name: "Alex Johnson",
+          role: "Product Manager",
+          email: "alex@example.com",
+          avatarUrl: "",
+          status: "active",
+          tasksCompleted: 24,
+        },
+        {
+          id: "2",
+          name: "Sarah Williams",
+          role: "UX Designer",
+          email: "sarah@example.com",
+          avatarUrl: "",
+          status: "active",
+          tasksCompleted: 18,
+        },
+        {
+          id: "3",
+          name: "Michael Chen",
+          role: "Frontend Developer",
+          email: "michael@example.com",
+          avatarUrl: "",
+          status: "active",
+          tasksCompleted: 32,
+        },
+        {
+          id: "4",
+          name: "Emily Davis",
+          role: "Backend Developer",
+          email: "emily@example.com",
+          avatarUrl: "",
+          status: "inactive",
+          tasksCompleted: 15,
+        },
+      ];
+      setTeamMembers(mockTeamMembers);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load team members",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddMember = (data: TeamMemberFormValues) => {
@@ -408,9 +421,9 @@ const Team: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Remove Team Member</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <p>Are you sure you want to remove {selectedMember?.name} from the team? This action cannot be undone.</p>
-          </div>
+          <DialogDescription className="py-4">
+            Are you sure you want to remove {selectedMember?.name} from the team? This action cannot be undone.
+          </DialogDescription>
           <DialogFooter>
             <Button
               variant="outline"

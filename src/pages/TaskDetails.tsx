@@ -1,14 +1,14 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Todo, TaskStatus, TaskPriority } from "@/types/task";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,22 +20,21 @@ const TaskDetails: React.FC = () => {
   const { toast } = useToast();
   
   const [task, setTask] = useState<any>(null);
-  const [company, setCompany] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [newTodo, setNewTodo] = useState<string>("");
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [newTodo, setNewTodo] = useState("");
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     if (id) {
-      fetchTaskData();
+      fetchTaskDetails();
     }
   }, [id]);
   
-  const fetchTaskData = async () => {
+  const fetchTaskDetails = async () => {
     try {
       setLoading(true);
       
-      // Fetch task
+      // Fetch task details
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
         .select('*')
@@ -47,24 +46,13 @@ const TaskDetails: React.FC = () => {
       if (taskData) {
         setTask(taskData);
         
-        // Fetch company if task has company_id
-        if (taskData.company_id) {
-          const { data: companyData } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('id', taskData.company_id)
-            .single();
-          
-          if (companyData) {
-            setCompany(companyData);
-          }
-        }
-        
-        // Fetch todos
-        const { data: todosData } = await supabase
+        // Fetch todos for this task
+        const { data: todosData, error: todosError } = await supabase
           .from('todos')
           .select('*')
           .eq('task_id', id);
+        
+        if (todosError) throw todosError;
         
         if (todosData) {
           // Map the database todo objects to the Todo interface
@@ -73,10 +61,10 @@ const TaskDetails: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error("Error fetching task data:", error);
+      console.error("Error fetching task details:", error);
       toast({
         title: "Error",
-        description: "Failed to load task data",
+        description: "Failed to load task details",
         variant: "destructive",
       });
     } finally {
@@ -84,19 +72,20 @@ const TaskDetails: React.FC = () => {
     }
   };
   
-  const addTodo = async () => {
-    if (!newTodo.trim()) return;
+  const handleAddTodo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTodo.trim() || !id) return;
     
     try {
-      const newTodoItem = {
-        content: newTodo,
-        task_id: task.id,
-        completed: false
-      };
-      
       const { data, error } = await supabase
         .from('todos')
-        .insert(newTodoItem)
+        .insert([
+          { 
+            content: newTodo, 
+            task_id: id,
+            completed: false 
+          }
+        ])
         .select();
       
       if (error) throw error;
@@ -116,20 +105,18 @@ const TaskDetails: React.FC = () => {
     }
   };
   
-  const toggleTodo = async (todoId: string, completed: boolean) => {
+  const handleToggleTodo = async (todoId: string, completed: boolean) => {
     try {
       const { error } = await supabase
         .from('todos')
-        .update({ completed: !completed })
+        .update({ completed })
         .eq('id', todoId);
       
       if (error) throw error;
       
-      setTodos(
-        todos.map(todo => 
-          todo.id === todoId ? { ...todo, completed: !completed } : todo
-        )
-      );
+      setTodos(todos.map(todo => 
+        todo.id === todoId ? { ...todo, completed } : todo
+      ));
     } catch (error) {
       console.error("Error toggling todo:", error);
       toast({
@@ -190,12 +177,12 @@ const TaskDetails: React.FC = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="container max-w-7xl mx-auto px-4">
       <PageHeader
         title={task.title}
-        description={`Task created on ${new Date(task.created_at).toLocaleDateString()}`}
+        description={task.description || "No description provided"}
         icon={<Icons.tasks className="h-6 w-6" />}
         action={{
           label: "Edit Task",
@@ -208,170 +195,112 @@ const TaskDetails: React.FC = () => {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <div className="flex flex-col sm:flex-row justify-between gap-2">
-                <div className="flex gap-2">
-                  <Badge variant={getStatusVariant(task.status as TaskStatus)}>{task.status}</Badge>
-                  <Badge variant={getPriorityVariant(task.priority as TaskPriority)}>{task.priority}</Badge>
-                </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Icons.clock className="mr-1 h-4 w-4" />
-                  Due: {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}
-                </div>
-              </div>
-              <CardDescription className="mt-4">{task.description}</CardDescription>
+              <CardTitle>Todo Items</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="todos">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="todos">To-Do List</TabsTrigger>
-                  <TabsTrigger value="comments">Comments</TabsTrigger>
-                  <TabsTrigger value="attachments">Attachments</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="todos">
-                  <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <Textarea 
-                        placeholder="Add a new to-do item..." 
-                        value={newTodo}
-                        onChange={(e) => setNewTodo(e.target.value)}
-                        className="flex-1"
+              {todos.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No todo items yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {todos.map((todo) => (
+                    <div key={todo.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={todo.id}
+                        checked={todo.completed}
+                        onCheckedChange={(checked) => 
+                          handleToggleTodo(todo.id, checked === true)
+                        }
                       />
-                      <Button onClick={addTodo}>Add</Button>
+                      <Label
+                        htmlFor={todo.id}
+                        className={`flex-1 ${
+                          todo.completed ? "line-through text-muted-foreground" : ""
+                        }`}
+                      >
+                        {todo.content}
+                      </Label>
                     </div>
-                    
-                    {todos.length === 0 ? (
-                      <div className="text-center py-6 bg-muted/40 rounded-md">
-                        <p className="text-sm text-muted-foreground">No to-do items yet</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {todos.map((todo) => (
-                          <div key={todo.id} className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded-md">
-                            <Checkbox 
-                              checked={todo.completed} 
-                              onCheckedChange={() => toggleTodo(todo.id, todo.completed)}
-                              id={todo.id}
-                            />
-                            <label 
-                              htmlFor={todo.id} 
-                              className={`flex-1 ${todo.completed ? "line-through text-muted-foreground" : ""}`}
-                            >
-                              {todo.content}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="comments">
-                  <div className="text-center py-6 bg-muted/40 rounded-md">
-                    <p className="text-sm text-muted-foreground">No comments yet</p>
-                  </div>
-                  
-                  <div className="mt-4 flex gap-2">
-                    <Textarea placeholder="Add a comment..." className="flex-1" />
-                    <Button>Post</Button>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="attachments">
-                  <div className="text-center py-6 bg-muted/40 rounded-md">
-                    <p className="text-sm text-muted-foreground">No attachments yet</p>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                  ))}
+                </div>
+              )}
+              
+              <form onSubmit={handleAddTodo} className="flex space-x-2 mt-6">
+                <Input
+                  placeholder="Add a new todo item"
+                  value={newTodo}
+                  onChange={(e) => setNewTodo(e.target.value)}
+                  className="flex-1"
+                />
+                <Button type="submit" size="sm">
+                  <Icons.add className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </div>
         
         <div className="lg:col-span-1">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xl">Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Assignee</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-xs">
-                          UN
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">Unassigned</span>
+          <Card>
+            <CardHeader>
+              <CardTitle>Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={getStatusVariant(task.status as TaskStatus)} className="mt-1">
+                    {task.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Priority</p>
+                  <Badge variant={getPriorityVariant(task.priority as TaskPriority)} className="mt-1">
+                    {task.priority}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Due Date</p>
+                  <p className="text-sm font-medium">
+                    {task.due_date ? new Date(task.due_date).toLocaleDateString() : "No due date"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Assignee</p>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Icons.user className="h-4 w-4" />
                     </div>
+                    <span className="text-sm font-medium">
+                      {task.assignee_name || "Unassigned"}
+                    </span>
                   </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Reporter</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-xs">
-                          UN
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">System</span>
-                    </div>
-                  </div>
-                  
-                  {company && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Company</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="w-6 h-6 bg-primary/10 rounded-md flex items-center justify-center">
-                          <Icons.building className="w-3 h-3 text-primary" />
-                        </div>
-                        <Button 
-                          variant="link" 
-                          className="p-0 h-auto text-sm"
-                          onClick={() => navigate(`/companies/${company.id}`)}
-                        >
-                          {company.name}
-                        </Button>
-                      </div>
-                    </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="text-sm font-medium">
+                    {new Date(task.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Company</p>
+                  {task.company_id ? (
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-sm font-medium"
+                      onClick={() => navigate(`/companies/${task.company_id}`)}
+                    >
+                      View Company
+                    </Button>
+                  ) : (
+                    <p className="text-sm font-medium">Not assigned</p>
                   )}
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Created</p>
-                    <p className="text-sm">{new Date(task.created_at).toLocaleDateString()}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Due Date</p>
-                    <p className="text-sm">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}</p>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xl">Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Button className="w-full justify-start" variant="outline">
-                    <Icons.edit className="mr-2 h-4 w-4" />
-                    Edit Task
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Icons.user className="mr-2 h-4 w-4" />
-                    Reassign
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Icons.tag className="mr-2 h-4 w-4" />
-                    Add Label
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
