@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,6 +33,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
   assignee,
   className,
 }) => {
+  const navigate = useNavigate();
+  
   // Get priority color
   const getPriorityColor = (priority: TaskPriority) => {
     switch (priority) {
@@ -65,8 +67,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
+  const handleCardClick = () => {
+    navigate(`/tasks/${id}`);
+  };
+
   return (
-    <Card className={cn("relative overflow-hidden", className)}>
+    <Card 
+      className={cn("relative overflow-hidden cursor-pointer hover:border-primary/50 transition-colors", className)}
+      onClick={handleCardClick}
+    >
       <div className={cn("priority-indicator", getPriorityColor(priority))} />
       <CardContent className="p-4">
         <div className="mb-2 flex justify-between items-start">
@@ -76,9 +85,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             {dueDate}
           </div>
         </div>
-        <Link to={`/tasks/${id}`} className="block hover:underline mb-1">
-          <h3 className="font-semibold text-lg leading-tight">{title}</h3>
-        </Link>
+        <h3 className="font-semibold text-lg leading-tight mb-1">{title}</h3>
         <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between">

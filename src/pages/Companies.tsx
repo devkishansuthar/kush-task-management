@@ -1,5 +1,6 @@
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { mockCompanies } from "@/services/mockData";
 
 const Companies: React.FC = () => {
+  const navigate = useNavigate();
+  
   return (
     <div className="container max-w-7xl mx-auto px-4">
       <PageHeader
@@ -16,7 +19,7 @@ const Companies: React.FC = () => {
         icon={<Icons.building className="h-6 w-6" />}
         action={{
           label: "Add Company",
-          onClick: () => {},
+          onClick: () => navigate("/companies/new"),
           icon: <Icons.add className="mr-2 h-4 w-4" />,
         }}
       />
@@ -74,11 +77,11 @@ const Companies: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => navigate(`/companies/${company.id}`)}>
                   <Icons.edit className="h-3.5 w-3.5 mr-1" />
                   Edit
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => navigate(`/companies/${company.id}`)}>
                   <Icons.view className="h-3.5 w-3.5 mr-1" />
                   View Details
                 </Button>

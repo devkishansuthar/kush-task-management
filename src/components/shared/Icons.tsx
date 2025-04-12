@@ -33,6 +33,8 @@ import {
   Lock,
   PenSquare,
   Eye,
+  ArrowUpDown,
+  Download,
 } from "lucide-react";
 
 export const Icons = {
@@ -70,4 +72,7 @@ export const Icons = {
   edit: PenSquare,
   view: Eye,
   bell: Bell,
+  sort: ArrowUpDown,
+  fileText: FileText,
+  download: Download,
 };

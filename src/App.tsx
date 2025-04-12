@@ -19,6 +19,9 @@ import TodoLists from "@/pages/TodoLists";
 import NewTask from "@/pages/NewTask";
 import Calendar from "@/pages/Calendar";
 import Companies from "@/pages/Companies";
+import CompanyDetails from "@/pages/CompanyDetails";
+import AddCompany from "@/pages/AddCompany";
+import TaskDetails from "@/pages/TaskDetails";
 
 const queryClient = new QueryClient();
 
@@ -39,10 +42,13 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/tasks" element={<Tasks />} />
                 <Route path="/tasks/new" element={<NewTask />} />
+                <Route path="/tasks/:id" element={<TaskDetails />} />
                 <Route path="/todos" element={<TodoLists />} />
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/team" element={<Team />} />
                 <Route path="/companies" element={<Companies />} />
+                <Route path="/companies/new" element={<AddCompany />} />
+                <Route path="/companies/:id" element={<CompanyDetails />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
