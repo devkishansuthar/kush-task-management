@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
@@ -6,24 +7,143 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockTasks, mockCompanies } from "@/services/mockData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Todo, TaskStatus, TaskPriority } from "@/types/task";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const TaskDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
-  const task = mockTasks.find(task => task.id === id);
-  
-  const company = task?.companyId ? 
-    mockCompanies.find(company => company.id === task.companyId) : 
-    undefined;
-  
+  const [task, setTask] = useState<any>(null);
+  const [company, setCompany] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [newTodo, setNewTodo] = useState<string>("");
-  const [todos, setTodos] = useState<Todo[]>(task?.todos || []);
+  const [todos, setTodos] = useState<Todo[]>([]);
+  
+  useEffect(() => {
+    if (id) {
+      fetchTaskData();
+    }
+  }, [id]);
+  
+  const fetchTaskData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch task
+      const { data: taskData, error: taskError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (taskError) throw taskError;
+      
+      if (taskData) {
+        setTask(taskData);
+        
+        // Fetch company if task has company_id
+        if (taskData.company_id) {
+          const { data: companyData } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', taskData.company_id)
+            .single();
+          
+          if (companyData) {
+            setCompany(companyData);
+          }
+        }
+        
+        // Fetch todos
+        const { data: todosData } = await supabase
+          .from('todos')
+          .select('*')
+          .eq('task_id', id);
+        
+        if (todosData) {
+          setTodos(todosData);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching task data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load task data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const addTodo = async () => {
+    if (!newTodo.trim()) return;
+    
+    try {
+      const newTodoItem = {
+        content: newTodo,
+        task_id: task.id,
+        completed: false
+      };
+      
+      const { data, error } = await supabase
+        .from('todos')
+        .insert(newTodoItem)
+        .select();
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setTodos([...todos, data[0]]);
+        setNewTodo("");
+      }
+    } catch (error) {
+      console.error("Error adding todo:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add todo item",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const toggleTodo = async (todoId: string, completed: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .update({ completed: !completed })
+        .eq('id', todoId);
+      
+      if (error) throw error;
+      
+      setTodos(
+        todos.map(todo => 
+          todo.id === todoId ? { ...todo, completed: !completed } : todo
+        )
+      );
+    } catch (error) {
+      console.error("Error toggling todo:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update todo item",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  if (loading) {
+    return (
+      <div className="container max-w-7xl mx-auto px-4 py-12 flex justify-center">
+        <Icons.spinner className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
   
   if (!task) {
     return (
@@ -67,35 +187,12 @@ const TaskDetails: React.FC = () => {
         return "outline";
     }
   };
-  
-  const addTodo = () => {
-    if (!newTodo.trim()) return;
-    
-    const newTodoItem: Todo = {
-      id: `todo-${Date.now()}`,
-      content: newTodo,
-      completed: false,
-      taskId: task.id,
-      createdAt: new Date().toISOString(),
-    };
-    
-    setTodos([...todos, newTodoItem]);
-    setNewTodo("");
-  };
-  
-  const toggleTodo = (todoId: string) => {
-    setTodos(
-      todos.map(todo => 
-        todo.id === todoId ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
-  };
 
   return (
     <div className="container max-w-7xl mx-auto px-4">
       <PageHeader
         title={task.title}
-        description={`Task created on ${new Date(task.createdAt).toLocaleDateString()}`}
+        description={`Task created on ${new Date(task.created_at).toLocaleDateString()}`}
         icon={<Icons.tasks className="h-6 w-6" />}
         action={{
           label: "Edit Task",
@@ -110,12 +207,12 @@ const TaskDetails: React.FC = () => {
             <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between gap-2">
                 <div className="flex gap-2">
-                  <Badge variant={getStatusVariant(task.status)}>{task.status}</Badge>
-                  <Badge variant={getPriorityVariant(task.priority)}>{task.priority}</Badge>
+                  <Badge variant={getStatusVariant(task.status as TaskStatus)}>{task.status}</Badge>
+                  <Badge variant={getPriorityVariant(task.priority as TaskPriority)}>{task.priority}</Badge>
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Icons.clock className="mr-1 h-4 w-4" />
-                  Due: {new Date(task.dueDate).toLocaleDateString()}
+                  Due: {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}
                 </div>
               </div>
               <CardDescription className="mt-4">{task.description}</CardDescription>
@@ -150,7 +247,7 @@ const TaskDetails: React.FC = () => {
                           <div key={todo.id} className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded-md">
                             <Checkbox 
                               checked={todo.completed} 
-                              onCheckedChange={() => toggleTodo(todo.id)} 
+                              onCheckedChange={() => toggleTodo(todo.id, todo.completed)}
                               id={todo.id}
                             />
                             <label 
@@ -167,33 +264,9 @@ const TaskDetails: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="comments">
-                  {task.comments.length === 0 ? (
-                    <div className="text-center py-6 bg-muted/40 rounded-md">
-                      <p className="text-sm text-muted-foreground">No comments yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {task.comments.map((comment) => (
-                        <div key={comment.id} className="flex gap-3 p-3 border rounded-md">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={comment.user.avatar} alt={comment.user.name} />
-                            <AvatarFallback className="text-xs">
-                              {comment.user.name.split(" ").map((n) => n[0]).join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                              <p className="font-medium text-sm">{comment.user.name}</p>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(comment.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <p className="text-sm mt-1">{comment.content}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="text-center py-6 bg-muted/40 rounded-md">
+                    <p className="text-sm text-muted-foreground">No comments yet</p>
+                  </div>
                   
                   <div className="mt-4 flex gap-2">
                     <Textarea placeholder="Add a comment..." className="flex-1" />
@@ -202,30 +275,9 @@ const TaskDetails: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="attachments">
-                  {task.attachments.length === 0 ? (
-                    <div className="text-center py-6 bg-muted/40 rounded-md">
-                      <p className="text-sm text-muted-foreground">No attachments yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {task.attachments.map((attachment) => (
-                        <div key={attachment.id} className="flex items-center justify-between p-2 border rounded-md">
-                          <div className="flex items-center gap-2">
-                            <Icons.fileText className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">{attachment.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {Math.round(attachment.size / 1024)} KB • Uploaded by {attachment.uploadedBy.name}
-                              </p>
-                            </div>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <Icons.download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="text-center py-6 bg-muted/40 rounded-md">
+                    <p className="text-sm text-muted-foreground">No attachments yet</p>
+                  </div>
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -244,12 +296,11 @@ const TaskDetails: React.FC = () => {
                     <p className="text-sm text-muted-foreground">Assignee</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
                         <AvatarFallback className="text-xs">
-                          {task.assignee.name.split(" ").map((n) => n[0]).join("")}
+                          UN
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{task.assignee.name}</span>
+                      <span className="text-sm">Unassigned</span>
                     </div>
                   </div>
                   
@@ -257,12 +308,11 @@ const TaskDetails: React.FC = () => {
                     <p className="text-sm text-muted-foreground">Reporter</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={task.reporter.avatar} alt={task.reporter.name} />
                         <AvatarFallback className="text-xs">
-                          {task.reporter.name.split(" ").map((n) => n[0]).join("")}
+                          UN
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{task.reporter.name}</span>
+                      <span className="text-sm">System</span>
                     </div>
                   </div>
                   
@@ -286,12 +336,12 @@ const TaskDetails: React.FC = () => {
                   
                   <div>
                     <p className="text-sm text-muted-foreground">Created</p>
-                    <p className="text-sm">{new Date(task.createdAt).toLocaleDateString()}</p>
+                    <p className="text-sm">{new Date(task.created_at).toLocaleDateString()}</p>
                   </div>
                   
                   <div>
                     <p className="text-sm text-muted-foreground">Due Date</p>
-                    <p className="text-sm">{new Date(task.dueDate).toLocaleDateString()}</p>
+                    <p className="text-sm">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}</p>
                   </div>
                 </div>
               </CardContent>
