@@ -100,7 +100,7 @@ export const mapDbTeamToTeam = (dbTeam: any, members: any[] = []): Team => {
     description: dbTeam.description || "",
     companyId: dbTeam.company_id || "",
     companyName: dbTeam.company_name || "",
-    members: members.map(mapDbTeamMemberToTeamMember),
+    members: Array.isArray(members) ? members.map(mapDbTeamMemberToTeamMember) : [],
     createdAt: dbTeam.created_at
   };
 };
@@ -130,6 +130,6 @@ export const mapTeamMemberToDbTeamMember = (member: TeamMember, teamId: string) 
     role: member.role,
     avatar: member.avatar,
     team_id: teamId,
-    user_id: member.id, // Using member.id as user_id for now since we don't have real user ids
+    user_id: member.id || crypto.randomUUID(), // Using member.id as user_id or generate a new one
   };
 };

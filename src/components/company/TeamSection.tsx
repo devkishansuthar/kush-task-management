@@ -27,7 +27,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Team, TeamMember } from "@/types/team";
-import { mapDbTeamToTeam, mapDbTeamMemberToTeamMember } from "@/utils/supabaseAdapters";
+import { mapDbTeamToTeam, mapDbTeamMemberToTeamMember, mapTeamMemberToDbTeamMember } from "@/utils/supabaseAdapters";
 import { useNavigate } from "react-router-dom";
 
 interface TeamSectionProps {
@@ -87,7 +87,7 @@ const TeamSection: React.FC<TeamSectionProps> = ({ companyId, companyName }) => 
           return mapDbTeamToTeam({
             ...team,
             company_name: companyName
-          }, (membersData || []).map(mapDbTeamMemberToTeamMember));
+          }, (membersData || []));
         })
       );
 
@@ -197,7 +197,7 @@ const TeamSection: React.FC<TeamSectionProps> = ({ companyId, companyName }) => 
           size="sm" 
           onClick={() => setIsCreateDialogOpen(true)}
         >
-          <Icons.plus className="mr-2 h-4 w-4" />
+          <Icons.add className="mr-2 h-4 w-4" />
           Add Team
         </Button>
       </div>
@@ -216,7 +216,7 @@ const TeamSection: React.FC<TeamSectionProps> = ({ companyId, companyName }) => 
               onClick={() => setIsCreateDialogOpen(true)}
               size="sm"
             >
-              <Icons.plus className="mr-2 h-4 w-4" />
+              <Icons.add className="mr-2 h-4 w-4" />
               Create First Team
             </Button>
           </CardContent>
