@@ -44,6 +44,7 @@ import {
   MapPin,
   Shield,
   MessageSquare,
+  Building,
 } from "lucide-react";
 
 export const Icons = {
@@ -60,6 +61,7 @@ export const Icons = {
   moon: Moon,
   sidebar: SidebarIcon,
   add: Plus,
+  plus: Plus, // Adding the missing Plus icon
   calendar: Calendar,
   search: Search,
   chevronLeft: ChevronLeft,
@@ -76,7 +78,8 @@ export const Icons = {
   filter: Filter,
   spinner: Loader2,
   notification: Bell,
-  building: Building2,
+  building: Building,
+  building2: Building2, // Adding the missing Building2 icon
   lock: Lock,
   edit: PenSquare,
   view: Eye,

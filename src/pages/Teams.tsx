@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
@@ -97,6 +98,7 @@ const Teams: React.FC = () => {
             .select('*')
             .eq('team_id', team.id);
 
+          // Use the adapter to properly map database fields to our Team type
           return mapDbTeamToTeam({
             ...team,
             company_name: team.companies?.name || "Unknown Company"
