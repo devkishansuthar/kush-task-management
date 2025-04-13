@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +25,7 @@ import { TeamMember } from "@/types/team";
 import { useSearch } from "@/hooks/use-search";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { mapDbTeamMemberToTeamMember } from "@/utils/supabaseAdapters";
 
 interface TeamMemberFormValues {
   name: string;
@@ -40,7 +42,10 @@ const teamMemberFormSchema = z.object({
 });
 
 const Team: React.FC = () => {
+  const { id: teamId } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const [teamName, setTeamName] = useState<string>("");
+  const [companyName, setCompanyName] = useState<string>("");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -71,26 +76,54 @@ const Team: React.FC = () => {
   });
 
   useEffect(() => {
-    fetchTeamMembers();
-  }, []);
+    if (teamId) {
+      fetchTeamDetails();
+      fetchTeamMembers();
+    }
+  }, [teamId]);
+
+  const fetchTeamDetails = async () => {
+    if (!teamId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('teams')
+        .select(`
+          *,
+          companies(name)
+        `)
+        .eq('id', teamId)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        setTeamName(data.name);
+        setCompanyName(data.companies?.name || "Unknown Company");
+      }
+    } catch (error) {
+      console.error("Error fetching team details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load team details",
+        variant: "destructive",
+      });
+    }
+  };
 
   const fetchTeamMembers = async () => {
+    if (!teamId) return;
+    
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('team_members')
-        .select('*');
+        .select('*')
+        .eq('team_id', teamId);
       
       if (error) throw error;
       
-      const mappedMembers: TeamMember[] = (data || []).map(member => ({
-        id: member.id,
-        name: member.name,
-        role: member.role || "",
-        email: member.email || "",
-        avatar: member.avatar,
-        status: "active" // Assuming all fetched members are active
-      }));
+      const mappedMembers: TeamMember[] = (data || []).map(mapDbTeamMemberToTeamMember);
       
       setTeamMembers(mappedMembers);
     } catch (error) {
@@ -106,10 +139,11 @@ const Team: React.FC = () => {
   };
 
   const handleAddMember = async (data: TeamMemberFormValues) => {
+    if (!teamId) return;
+    
     try {
-      // Generate a random team_id for demonstration
-      // In a real application, this would be determined based on the current team context
-      const teamId = "1"; // Placeholder
+      // Generate a random user_id for demonstration
+      const userId = crypto.randomUUID();
       
       const { data: newMember, error } = await supabase
         .from('team_members')
@@ -117,7 +151,7 @@ const Team: React.FC = () => {
           name: data.name,
           role: data.role,
           email: data.email,
-          user_id: Math.random().toString(), // Generate random user_id for now
+          user_id: userId,
           team_id: teamId
         })
         .select()
@@ -125,13 +159,7 @@ const Team: React.FC = () => {
       
       if (error) throw error;
 
-      const addedMember: TeamMember = {
-        id: newMember.id,
-        name: newMember.name,
-        role: newMember.role || "",
-        email: newMember.email || "",
-        avatar: newMember.avatar,
-      };
+      const addedMember = mapDbTeamMemberToTeamMember(newMember);
 
       setTeamMembers([...teamMembers, addedMember]);
       addForm.reset();
@@ -152,7 +180,7 @@ const Team: React.FC = () => {
   };
 
   const handleEditMember = async (data: TeamMemberFormValues) => {
-    if (!selectedMember) return;
+    if (!selectedMember || !teamId) return;
     
     try {
       const { error } = await supabase
@@ -191,7 +219,7 @@ const Team: React.FC = () => {
   };
 
   const handleDeleteMember = async () => {
-    if (!selectedMember) return;
+    if (!selectedMember || !teamId) return;
     
     try {
       const { error } = await supabase
@@ -247,9 +275,13 @@ const Team: React.FC = () => {
   return (
     <div className="container max-w-7xl mx-auto px-4">
       <PageHeader
-        title="Team"
-        description="Manage your team members and their access"
+        title={teamName}
+        description={`Manage team members for ${teamName} at ${companyName}`}
         icon={<Icons.users className="h-6 w-6" />}
+        breadcrumbs={[
+          { label: "Teams", href: "/teams" },
+          { label: teamName, href: `/teams/${teamId}` },
+        ]}
         action={{
           label: "Add Team Member",
           onClick: () => setIsAddDialogOpen(true),

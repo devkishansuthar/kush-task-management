@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Todo, Task, Comment, Attachment, TaskPriority, TaskStatus } from "@/types/task";
 import { Company } from "@/types/company";
@@ -98,7 +99,7 @@ export const mapDbTeamToTeam = (dbTeam: any, members: TeamMember[] = []): Team =
     name: dbTeam.name,
     description: dbTeam.description || "",
     companyId: dbTeam.company_id || "",
-    companyName: dbTeam.company_name || "",
+    companyName: dbTeam.company_name || dbTeam.companies?.name || "",
     members: members,
     createdAt: dbTeam.created_at
   };
