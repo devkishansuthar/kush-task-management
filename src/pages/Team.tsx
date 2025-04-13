@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
@@ -142,7 +141,6 @@ const Team: React.FC = () => {
     if (!teamId) return;
     
     try {
-      // Generate a random user_id for demonstration
       const userId = crypto.randomUUID();
       
       const { data: newMember, error } = await supabase
@@ -254,7 +252,7 @@ const Team: React.FC = () => {
       name: member.name,
       role: member.role,
       email: member.email,
-      status: "active", // Assuming all members are active
+      status: "active",
     });
     setIsEditDialogOpen(true);
   };
@@ -278,10 +276,6 @@ const Team: React.FC = () => {
         title={teamName}
         description={`Manage team members for ${teamName} at ${companyName}`}
         icon={<Icons.users className="h-6 w-6" />}
-        breadcrumbs={[
-          { label: "Teams", href: "/teams" },
-          { label: teamName, href: `/teams/${teamId}` },
-        ]}
         action={{
           label: "Add Team Member",
           onClick: () => setIsAddDialogOpen(true),
@@ -359,11 +353,13 @@ const Team: React.FC = () => {
         )}
       </div>
 
-      {/* Add Team Member Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add Team Member</DialogTitle>
+            <DialogDescription>
+              Fill in the details to add a new team member to {teamName}.
+            </DialogDescription>
           </DialogHeader>
           <Form {...addForm}>
             <form onSubmit={addForm.handleSubmit(handleAddMember)} className="space-y-4">
@@ -438,11 +434,13 @@ const Team: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Team Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Team Member</DialogTitle>
+            <DialogDescription>
+              Update the team member's information.
+            </DialogDescription>
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(handleEditMember)} className="space-y-4">
@@ -517,7 +515,6 @@ const Team: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Team Member Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
