@@ -93,14 +93,14 @@ export const mapCompanyToDbCompany = (company: Company) => {
 };
 
 // Team adapters
-export const mapDbTeamToTeam = (dbTeam: any, members: TeamMember[] = []): Team => {
+export const mapDbTeamToTeam = (dbTeam: any, members: any[] = []): Team => {
   return {
     id: dbTeam.id,
     name: dbTeam.name,
     description: dbTeam.description || "",
     companyId: dbTeam.company_id || "",
-    companyName: dbTeam.company_name || dbTeam.companies?.name || "",
-    members: members,
+    companyName: dbTeam.company_name || "",
+    members: members.map(mapDbTeamMemberToTeamMember),
     createdAt: dbTeam.created_at
   };
 };

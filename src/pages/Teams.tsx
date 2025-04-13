@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
@@ -155,12 +154,11 @@ const Teams: React.FC = () => {
       // Find company name for the selected companyId
       const company = companies.find(c => c.id === data.companyId);
       
-      // Update local state
-      const teamWithCompany = {
+      // Create a new team with the correct structure using the adapter
+      const teamWithCompany = mapDbTeamToTeam({
         ...newTeam,
-        companyName: company?.name || "Unknown Company",
-        members: []
-      } as Team;
+        company_name: company?.name || "Unknown Company"
+      }, []);
 
       setTeams([...teams, teamWithCompany]);
       form.reset();
@@ -199,16 +197,17 @@ const Teams: React.FC = () => {
       // Find company name for the selected companyId
       const company = companies.find(c => c.id === data.companyId);
       
-      // Update local state
+      // Update local state using the proper structure with the adapter
       const updatedTeams = teams.map((team) => 
         team.id === selectedTeam.id 
-          ? { 
-              ...team, 
-              name: data.name, 
-              description: data.description || "", 
-              companyId: data.companyId,
-              companyName: company?.name || "Unknown Company" 
-            } 
+          ? mapDbTeamToTeam({
+              id: selectedTeam.id,
+              name: data.name,
+              description: data.description || "",
+              company_id: data.companyId,
+              company_name: company?.name || "Unknown Company",
+              created_at: selectedTeam.createdAt
+            }, selectedTeam.members)
           : team
       );
       
