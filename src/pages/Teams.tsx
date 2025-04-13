@@ -6,7 +6,6 @@ import { Icons } from "@/components/shared/Icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
@@ -31,25 +30,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-// Define the Team interface
-interface Team {
-  id: string;
-  name: string;
-  description: string;
-  members: TeamMember[];
-  companyId: string;
-  companyName: string;
-  createdAt: string;
-}
-
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  email: string;
-  avatar?: string;
-}
+import { Team } from "@/types/team";
+import { mapDbTeamToTeam } from "@/utils/supabaseAdapters";
 
 // Form schema for team creation and editing
 const teamFormSchema = z.object({
@@ -98,47 +80,32 @@ const Teams: React.FC = () => {
   const fetchTeams = async () => {
     setLoading(true);
     try {
-      // In a real app, this would fetch from Supabase
-      // For now, using mock data
-      const mockTeams: Team[] = [
-        {
-          id: "1",
-          name: "Development Team",
-          description: "Frontend and backend developers",
-          members: [
-            { id: "1", name: "John Doe", role: "Team Lead", email: "john@example.com" },
-            { id: "2", name: "Jane Smith", role: "Frontend Developer", email: "jane@example.com" },
-          ],
-          companyId: "1",
-          companyName: "Acme Inc",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          name: "Design Team",
-          description: "UI/UX designers",
-          members: [
-            { id: "3", name: "Emily Davis", role: "Design Lead", email: "emily@example.com" },
-          ],
-          companyId: "1",
-          companyName: "Acme Inc",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "3",
-          name: "Marketing Team",
-          description: "Marketing and sales professionals",
-          members: [
-            { id: "4", name: "Michael Brown", role: "Marketing Manager", email: "michael@example.com" },
-            { id: "5", name: "Sarah Johnson", role: "Sales Executive", email: "sarah@example.com" },
-          ],
-          companyId: "2",
-          companyName: "TechCorp",
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      
-      setTeams(mockTeams);
+      // Fetch teams data
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select(`
+          *,
+          companies(name)
+        `);
+
+      if (teamsError) throw teamsError;
+
+      // Fetch team members for each team
+      const teamsWithMembers = await Promise.all(
+        (teamsData || []).map(async (team) => {
+          const { data: membersData } = await supabase
+            .from('team_members')
+            .select('*')
+            .eq('team_id', team.id);
+
+          return mapDbTeamToTeam({
+            ...team,
+            company_name: team.companies?.name || "Unknown Company"
+          }, membersData || []);
+        })
+      );
+
+      setTeams(teamsWithMembers);
     } catch (error) {
       console.error("Error fetching teams:", error);
       toast({
@@ -153,15 +120,12 @@ const Teams: React.FC = () => {
 
   const fetchCompanies = async () => {
     try {
-      // In a real app, this would fetch from Supabase
-      // For now, using mock data
-      const mockCompanies = [
-        { id: "1", name: "Acme Inc" },
-        { id: "2", name: "TechCorp" },
-        { id: "3", name: "Global Solutions" },
-      ];
-      
-      setCompanies(mockCompanies);
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name');
+
+      if (error) throw error;
+      setCompanies(data || []);
     } catch (error) {
       console.error("Error fetching companies:", error);
       toast({
@@ -172,67 +136,129 @@ const Teams: React.FC = () => {
     }
   };
 
-  const handleCreateTeam = (data: TeamFormValues) => {
-    // Find company name for the selected companyId
-    const company = companies.find(c => c.id === data.companyId);
-    
-    const newTeam: Team = {
-      id: `${Date.now()}`,
-      name: data.name,
-      description: data.description || "",
-      members: [],
-      companyId: data.companyId,
-      companyName: company?.name || "Unknown Company",
-      createdAt: new Date().toISOString(),
-    };
+  const handleCreateTeam = async (data: TeamFormValues) => {
+    try {
+      // Insert new team into the database
+      const { data: newTeam, error } = await supabase
+        .from('teams')
+        .insert({
+          name: data.name,
+          description: data.description,
+          company_id: data.companyId
+        })
+        .select()
+        .single();
 
-    setTeams([...teams, newTeam]);
-    form.reset();
-    setIsCreateDialogOpen(false);
-    toast({
-      title: "Team created",
-      description: `${data.name} team has been created successfully.`,
-    });
+      if (error) throw error;
+
+      // Find company name for the selected companyId
+      const company = companies.find(c => c.id === data.companyId);
+      
+      // Update local state
+      const teamWithCompany = {
+        ...newTeam,
+        companyName: company?.name || "Unknown Company",
+        members: []
+      } as Team;
+
+      setTeams([...teams, teamWithCompany]);
+      form.reset();
+      setIsCreateDialogOpen(false);
+      
+      toast({
+        title: "Team created",
+        description: `${data.name} team has been created successfully.`,
+      });
+    } catch (error) {
+      console.error("Error creating team:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create team",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEditTeam = (data: TeamFormValues) => {
+  const handleEditTeam = async (data: TeamFormValues) => {
     if (!selectedTeam) return;
 
-    // Find company name for the selected companyId
-    const company = companies.find(c => c.id === data.companyId);
-    
-    const updatedTeams = teams.map((team) => 
-      team.id === selectedTeam.id 
-        ? { 
-            ...team, 
-            name: data.name, 
-            description: data.description || "", 
-            companyId: data.companyId,
-            companyName: company?.name || "Unknown Company" 
-          } 
-        : team
-    );
-    
-    setTeams(updatedTeams);
-    editForm.reset();
-    setIsEditDialogOpen(false);
-    toast({
-      title: "Team updated",
-      description: `${data.name} team has been updated successfully.`,
-    });
+    try {
+      // Update team in the database
+      const { error } = await supabase
+        .from('teams')
+        .update({
+          name: data.name,
+          description: data.description,
+          company_id: data.companyId
+        })
+        .eq('id', selectedTeam.id);
+
+      if (error) throw error;
+
+      // Find company name for the selected companyId
+      const company = companies.find(c => c.id === data.companyId);
+      
+      // Update local state
+      const updatedTeams = teams.map((team) => 
+        team.id === selectedTeam.id 
+          ? { 
+              ...team, 
+              name: data.name, 
+              description: data.description || "", 
+              companyId: data.companyId,
+              companyName: company?.name || "Unknown Company" 
+            } 
+          : team
+      );
+      
+      setTeams(updatedTeams);
+      editForm.reset();
+      setIsEditDialogOpen(false);
+      
+      toast({
+        title: "Team updated",
+        description: `${data.name} team has been updated successfully.`,
+      });
+    } catch (error) {
+      console.error("Error updating team:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update team",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteTeam = () => {
+  const handleDeleteTeam = async () => {
     if (!selectedTeam) return;
     
-    const updatedTeams = teams.filter((team) => team.id !== selectedTeam.id);
-    setTeams(updatedTeams);
-    setIsDeleteDialogOpen(false);
-    toast({
-      title: "Team deleted",
-      description: `${selectedTeam.name} team has been deleted.`,
-      variant: "destructive",
-    });
+    try {
+      // Delete team from the database
+      const { error } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', selectedTeam.id);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedTeams = teams.filter((team) => team.id !== selectedTeam.id);
+      setTeams(updatedTeams);
+      setIsDeleteDialogOpen(false);
+      
+      toast({
+        title: "Team deleted",
+        description: `${selectedTeam.name} team has been deleted.`,
+        variant: "destructive",
+      });
+    } catch (error) {
+      console.error("Error deleting team:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete team",
+        variant: "destructive",
+      });
+    }
   };
 
   const openEditDialog = (team: Team) => {
@@ -328,9 +354,13 @@ const Teams: React.FC = () => {
                     {team.members.length > 0 ? (
                       team.members.slice(0, 3).map((member, index) => (
                         <Avatar key={index} className="border-2 border-background">
-                          <AvatarFallback>
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
+                          {member.avatar ? (
+                            <AvatarImage src={member.avatar} alt={member.name} />
+                          ) : (
+                            <AvatarFallback>
+                              {member.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          )}
                         </Avatar>
                       ))
                     ) : (

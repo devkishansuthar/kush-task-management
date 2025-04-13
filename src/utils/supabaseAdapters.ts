@@ -1,7 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Todo, Task, Comment, Attachment, TaskPriority, TaskStatus } from "@/types/task";
 import { Company } from "@/types/company";
+import { Team, TeamMember } from "@/types/team";
 
 // Task adapters
 export const mapDbTaskToTask = (dbTask: any, todos: Todo[] = [], comments: Comment[] = [], attachments: Attachment[] = []): Task => {
@@ -88,5 +88,47 @@ export const mapCompanyToDbCompany = (company: Company) => {
     website: company.website,
     employee_count: company.employeeCount,
     status: company.status
+  };
+};
+
+// Team adapters
+export const mapDbTeamToTeam = (dbTeam: any, members: TeamMember[] = []): Team => {
+  return {
+    id: dbTeam.id,
+    name: dbTeam.name,
+    description: dbTeam.description || "",
+    companyId: dbTeam.company_id || "",
+    companyName: dbTeam.company_name || "",
+    members: members,
+    createdAt: dbTeam.created_at
+  };
+};
+
+export const mapTeamToDbTeam = (team: Team) => {
+  return {
+    name: team.name,
+    description: team.description,
+    company_id: team.companyId,
+  };
+};
+
+export const mapDbTeamMemberToTeamMember = (dbMember: any): TeamMember => {
+  return {
+    id: dbMember.id,
+    name: dbMember.name,
+    email: dbMember.email || "",
+    role: dbMember.role || "",
+    avatar: dbMember.avatar || "",
+  };
+};
+
+export const mapTeamMemberToDbTeamMember = (member: TeamMember, teamId: string) => {
+  return {
+    name: member.name,
+    email: member.email,
+    role: member.role,
+    avatar: member.avatar,
+    team_id: teamId,
+    user_id: member.id, // Using member.id as user_id for now since we don't have real user ids
   };
 };

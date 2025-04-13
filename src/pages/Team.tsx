@@ -20,16 +20,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  email: string;
-  avatarUrl: string;
-  status: string;
-  tasksCompleted: number;
-}
+import { TeamMember } from "@/types/team";
+import { useSearch } from "@/hooks/use-search";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface TeamMemberFormValues {
   name: string;
@@ -37,6 +31,13 @@ interface TeamMemberFormValues {
   email: string;
   status: string;
 }
+
+const teamMemberFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  role: z.string().min(1, "Role is required"),
+  email: z.string().email("Invalid email address"),
+  status: z.string()
+});
 
 const Team: React.FC = () => {
   const { toast } = useToast();
@@ -47,7 +48,10 @@ const Team: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
+  const { searchQuery, setSearchQuery, filteredItems } = useSearch(teamMembers, ['name', 'email', 'role']);
+
   const addForm = useForm<TeamMemberFormValues>({
+    resolver: zodResolver(teamMemberFormSchema),
     defaultValues: {
       name: "",
       role: "",
@@ -57,6 +61,7 @@ const Team: React.FC = () => {
   });
 
   const editForm = useForm<TeamMemberFormValues>({
+    resolver: zodResolver(teamMemberFormSchema),
     defaultValues: {
       name: "",
       role: "",
@@ -72,47 +77,22 @@ const Team: React.FC = () => {
   const fetchTeamMembers = async () => {
     setLoading(true);
     try {
-      // In a real application, this would fetch from Supabase
-      // For now using mock data
-      const mockTeamMembers = [
-        {
-          id: "1",
-          name: "Alex Johnson",
-          role: "Product Manager",
-          email: "alex@example.com",
-          avatarUrl: "",
-          status: "active",
-          tasksCompleted: 24,
-        },
-        {
-          id: "2",
-          name: "Sarah Williams",
-          role: "UX Designer",
-          email: "sarah@example.com",
-          avatarUrl: "",
-          status: "active",
-          tasksCompleted: 18,
-        },
-        {
-          id: "3",
-          name: "Michael Chen",
-          role: "Frontend Developer",
-          email: "michael@example.com",
-          avatarUrl: "",
-          status: "active",
-          tasksCompleted: 32,
-        },
-        {
-          id: "4",
-          name: "Emily Davis",
-          role: "Backend Developer",
-          email: "emily@example.com",
-          avatarUrl: "",
-          status: "inactive",
-          tasksCompleted: 15,
-        },
-      ];
-      setTeamMembers(mockTeamMembers);
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('*');
+      
+      if (error) throw error;
+      
+      const mappedMembers: TeamMember[] = (data || []).map(member => ({
+        id: member.id,
+        name: member.name,
+        role: member.role || "",
+        email: member.email || "",
+        avatar: member.avatar,
+        status: "active" // Assuming all fetched members are active
+      }));
+      
+      setTeamMembers(mappedMembers);
     } catch (error) {
       console.error("Error fetching team members:", error);
       toast({
@@ -125,55 +105,119 @@ const Team: React.FC = () => {
     }
   };
 
-  const handleAddMember = (data: TeamMemberFormValues) => {
-    const newMember: TeamMember = {
-      id: `${Date.now()}`,
-      name: data.name,
-      role: data.role,
-      email: data.email,
-      avatarUrl: "",
-      status: data.status,
-      tasksCompleted: 0,
-    };
+  const handleAddMember = async (data: TeamMemberFormValues) => {
+    try {
+      // Generate a random team_id for demonstration
+      // In a real application, this would be determined based on the current team context
+      const teamId = "1"; // Placeholder
+      
+      const { data: newMember, error } = await supabase
+        .from('team_members')
+        .insert({
+          name: data.name,
+          role: data.role,
+          email: data.email,
+          user_id: Math.random().toString(), // Generate random user_id for now
+          team_id: teamId
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
 
-    setTeamMembers([...teamMembers, newMember]);
-    addForm.reset();
-    setIsAddDialogOpen(false);
-    toast({
-      title: "Team member added",
-      description: `${data.name} has been added to the team.`,
-    });
+      const addedMember: TeamMember = {
+        id: newMember.id,
+        name: newMember.name,
+        role: newMember.role || "",
+        email: newMember.email || "",
+        avatar: newMember.avatar,
+      };
+
+      setTeamMembers([...teamMembers, addedMember]);
+      addForm.reset();
+      setIsAddDialogOpen(false);
+      
+      toast({
+        title: "Team member added",
+        description: `${data.name} has been added to the team.`,
+      });
+    } catch (error) {
+      console.error("Error adding team member:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add team member",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEditMember = (data: TeamMemberFormValues) => {
+  const handleEditMember = async (data: TeamMemberFormValues) => {
     if (!selectedMember) return;
     
-    const updatedMembers = teamMembers.map((member) => 
-      member.id === selectedMember.id ? 
-        { ...member, name: data.name, role: data.role, email: data.email, status: data.status } : 
-        member
-    );
-    
-    setTeamMembers(updatedMembers);
-    editForm.reset();
-    setIsEditDialogOpen(false);
-    toast({
-      title: "Team member updated",
-      description: `${data.name}'s information has been updated.`,
-    });
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .update({
+          name: data.name,
+          role: data.role,
+          email: data.email
+        })
+        .eq('id', selectedMember.id);
+      
+      if (error) throw error;
+      
+      const updatedMembers = teamMembers.map((member) => 
+        member.id === selectedMember.id ? 
+          { ...member, name: data.name, role: data.role, email: data.email } : 
+          member
+      );
+      
+      setTeamMembers(updatedMembers);
+      editForm.reset();
+      setIsEditDialogOpen(false);
+      
+      toast({
+        title: "Team member updated",
+        description: `${data.name}'s information has been updated.`,
+      });
+    } catch (error) {
+      console.error("Error updating team member:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update team member",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteMember = () => {
+  const handleDeleteMember = async () => {
     if (!selectedMember) return;
     
-    const updatedMembers = teamMembers.filter((member) => member.id !== selectedMember.id);
-    setTeamMembers(updatedMembers);
-    setIsDeleteDialogOpen(false);
-    toast({
-      title: "Team member removed",
-      description: `${selectedMember.name} has been removed from the team.`,
-      variant: "destructive",
-    });
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', selectedMember.id);
+      
+      if (error) throw error;
+      
+      const updatedMembers = teamMembers.filter((member) => member.id !== selectedMember.id);
+      setTeamMembers(updatedMembers);
+      setIsDeleteDialogOpen(false);
+      
+      toast({
+        title: "Team member removed",
+        description: `${selectedMember.name} has been removed from the team.`,
+        variant: "destructive",
+      });
+    } catch (error) {
+      console.error("Error deleting team member:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove team member",
+        variant: "destructive",
+      });
+    }
   };
 
   const openEditDialog = (member: TeamMember) => {
@@ -182,7 +226,7 @@ const Team: React.FC = () => {
       name: member.name,
       role: member.role,
       email: member.email,
-      status: member.status,
+      status: "active", // Assuming all members are active
     });
     setIsEditDialogOpen(true);
   };
@@ -213,53 +257,77 @@ const Team: React.FC = () => {
         }}
       />
       
+      <div className="my-6">
+        <Input
+          placeholder="Search team members..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-md"
+        />
+      </div>
+      
       <div className="mt-6 space-y-4">
-        {teamMembers.map((member) => (
-          <Card key={member.id} className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-center p-4">
-                <Avatar className="h-12 w-12 mr-4">
-                  <AvatarImage src={member.avatarUrl} alt={member.name} />
-                  <AvatarFallback>
-                    {member.name.split(' ').map(name => name[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium">{member.name}</h3>
-                    <Badge variant={member.status === "active" ? "default" : "secondary"}>
-                      {member.status}
-                    </Badge>
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-12 bg-card rounded-md shadow-sm">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
+              <Icons.users className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-1">No team members found</h3>
+            <p className="text-muted-foreground mb-4">
+              {searchQuery 
+                ? "No team members match your search criteria." 
+                : "You haven't added any team members yet."}
+            </p>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Icons.userPlus className="mr-2 h-4 w-4" />
+              Add Team Member
+            </Button>
+          </div>
+        ) : (
+          filteredItems.map((member: TeamMember) => (
+            <Card key={member.id} className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="flex items-center p-4">
+                  <Avatar className="h-12 w-12 mr-4">
+                    <AvatarImage src={member.avatar} alt={member.name} />
+                    <AvatarFallback>
+                      {member.name.split(' ').map(name => name[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">{member.name}</h3>
+                      <Badge variant="default">
+                        active
+                      </Badge>
+                    </div>
+                    <p className="text-muted-foreground text-sm">{member.role}</p>
+                    <p className="text-sm">{member.email}</p>
                   </div>
-                  <p className="text-muted-foreground text-sm">{member.role}</p>
-                  <p className="text-sm">{member.email}</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditDialog(member)}
+                    >
+                      <Icons.edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openDeleteDialog(member)}
+                    >
+                      <Icons.trash className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="text-right mr-4">
-                  <p className="text-sm">Tasks Completed</p>
-                  <p className="text-xl font-semibold">{member.tasksCompleted}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEditDialog(member)}
-                  >
-                    <Icons.edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openDeleteDialog(member)}
-                  >
-                    <Icons.trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
+      {/* Add Team Member Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -338,6 +406,7 @@ const Team: React.FC = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Team Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -416,6 +485,7 @@ const Team: React.FC = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Team Member Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
