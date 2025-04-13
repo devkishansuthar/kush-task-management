@@ -31,11 +31,14 @@ const AppSidebar: React.FC = () => {
   // Role-specific navigation items
   const roleNavItems = {
     superadmin: [
-      { name: "Companies", path: "/companies", icon: Icons.users },
+      { name: "Companies", path: "/companies", icon: Icons.building },
+      { name: "Teams", path: "/teams", icon: Icons.users },
+      { name: "Team", path: "/team", icon: Icons.userPlus },
       { name: "Analytics", path: "/analytics", icon: Icons.chart },
     ],
     admin: [
-      { name: "Team", path: "/team", icon: Icons.users },
+      { name: "Teams", path: "/teams", icon: Icons.users },
+      { name: "Team", path: "/team", icon: Icons.userPlus },
       { name: "Analytics", path: "/analytics", icon: Icons.chart },
     ],
     user: [],

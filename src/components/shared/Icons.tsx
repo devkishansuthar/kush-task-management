@@ -37,6 +37,13 @@ import {
   Download,
   UserPlus,
   Trash,
+  UserMinus,
+  Mail,
+  Phone,
+  Globe,
+  MapPin,
+  Shield,
+  MessageSquare,
 } from "lucide-react";
 
 export const Icons = {
@@ -79,4 +86,11 @@ export const Icons = {
   download: Download,
   userPlus: UserPlus,
   trash: Trash,
+  userMinus: UserMinus,
+  mail: Mail,
+  phone: Phone,
+  globe: Globe,
+  location: MapPin,
+  shield: Shield,
+  message: MessageSquare,
 };

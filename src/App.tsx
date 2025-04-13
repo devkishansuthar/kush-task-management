@@ -15,6 +15,8 @@ import Index from "@/pages/Index";
 import Settings from "@/pages/Settings";
 import Analytics from "@/pages/Analytics";
 import Team from "@/pages/Team";
+import Teams from "@/pages/Teams";
+import TeamDetails from "@/pages/TeamDetails";
 import TodoLists from "@/pages/TodoLists";
 import NewTask from "@/pages/NewTask";
 import Calendar from "@/pages/Calendar";
@@ -46,6 +48,8 @@ const App = () => (
                 <Route path="/todos" element={<TodoLists />} />
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/team" element={<Team />} />
+                <Route path="/teams" element={<Teams />} />
+                <Route path="/teams/:id" element={<TeamDetails />} />
                 <Route path="/companies" element={<Companies />} />
                 <Route path="/companies/new" element={<AddCompany />} />
                 <Route path="/companies/:id" element={<CompanyDetails />} />
