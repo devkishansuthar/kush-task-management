@@ -175,6 +175,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
         ]
       }
       team_members: {
@@ -196,7 +203,7 @@ export type Database = {
           name: string
           role?: string | null
           team_id: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           avatar?: string | null
