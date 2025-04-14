@@ -25,7 +25,6 @@ const AppSidebar: React.FC = () => {
     { name: "Dashboard", path: "/dashboard", icon: Icons.dashboard },
     { name: "Tasks", path: "/tasks", icon: Icons.tasks },
     { name: "To-Do Lists", path: "/todos", icon: Icons.todos },
-    { name: "Calendar", path: "/calendar", icon: Icons.calendar },
   ];
   
   // Role-specific navigation items
@@ -33,12 +32,10 @@ const AppSidebar: React.FC = () => {
     superadmin: [
       { name: "Companies", path: "/companies", icon: Icons.building },
       { name: "Teams", path: "/teams", icon: Icons.users },
-      { name: "Team", path: "/team", icon: Icons.userPlus },
       { name: "Analytics", path: "/analytics", icon: Icons.chart },
     ],
     admin: [
       { name: "Teams", path: "/teams", icon: Icons.users },
-      { name: "Team", path: "/team", icon: Icons.userPlus },
       { name: "Analytics", path: "/analytics", icon: Icons.chart },
     ],
     user: [],

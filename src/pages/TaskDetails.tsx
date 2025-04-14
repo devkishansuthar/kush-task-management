@@ -318,35 +318,6 @@ const TaskDetails: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-
-          <Tabs defaultValue="comments" className="mt-6">
-            <TabsList>
-              <TabsTrigger value="comments">Comments</TabsTrigger>
-              <TabsTrigger value="todos">Todos</TabsTrigger>
-              <TabsTrigger value="attachments">Attachments</TabsTrigger>
-            </TabsList>
-            <TabsContent value="comments" className="mt-4">
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">No comments yet</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="todos" className="mt-4">
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">No todos yet</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="attachments" className="mt-4">
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">No attachments yet</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
         </div>
 
         <div>

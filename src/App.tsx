@@ -48,7 +48,6 @@ const App = () => (
                 <Route path="/tasks/new" element={<NewTask />} />
                 <Route path="/tasks/:id" element={<TaskDetails />} />
                 <Route path="/todos" element={<TodoLists />} />
-                <Route path="/calendar" element={<Calendar />} />
                 <Route path="/team" element={<Navigate to="/teams" replace />} />
                 <Route path="/team/:id" element={<Team />} />
                 <Route path="/teams" element={<Teams />} />
