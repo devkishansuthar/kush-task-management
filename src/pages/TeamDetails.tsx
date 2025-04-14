@@ -142,7 +142,6 @@ const TeamDetails: React.FC = () => {
           role: data.role,
           email: data.email,
           team_id: id,
-          user_id: Math.random().toString() // Generate random user_id for now
         })
         .select()
         .single();
