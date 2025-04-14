@@ -90,7 +90,19 @@ const TaskDetails: React.FC = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('tasks')
-        .select('*')
+        .select(`
+          *,
+          assignee:team_members (
+            id,
+            name,
+            avatar
+          ),
+          reporter:team_members (
+            id,
+            name,
+            avatar
+          )
+        `)
         .eq('id', id)
         .single();
 
