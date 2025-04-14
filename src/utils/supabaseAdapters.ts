@@ -130,6 +130,5 @@ export const mapTeamMemberToDbTeamMember = (member: TeamMember, teamId: string) 
     role: member.role,
     avatar: member.avatar,
     team_id: teamId,
-    user_id: crypto.randomUUID(), // Using proper UUID generation
   };
 };
