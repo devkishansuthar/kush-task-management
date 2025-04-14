@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -36,25 +35,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Define the correct status mapping to match what's in the database
-const dbToAppStatusMap = {
+const dbToAppStatusMap: Record<string, TaskStatus> = {
   'todo': 'todo',
   'in_progress': 'in progress',
-  'in_review': 'in review',
-  'done': 'completed'
+  'done': 'completed',
+  'blocked': 'blocked'
 };
 
-const appToDbStatusMap = {
+const appToDbStatusMap: Record<TaskStatus, string> = {
   'todo': 'todo',
   'in progress': 'in_progress',
-  'in review': 'in_review',
-  'completed': 'done'
+  'completed': 'done',
+  'blocked': 'blocked'
 };
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  status: z.enum(["todo", "in_progress", "in_review", "done"]),
+  status: z.enum(["todo", "in_progress", "done", "blocked"]),
   priority: z.enum(["low", "medium", "high", "urgent"]),
   dueDate: z.string().optional(),
 });
@@ -102,16 +100,12 @@ const TaskDetails: React.FC = () => {
         const taskData = mapDbTaskToTask(data);
         setTask(taskData);
         
-        // Map the task status to match the form schema values
-        const dbStatus = taskData.status === "completed" ? "done" : 
-                         taskData.status === "in progress" ? "in_progress" :
-                         taskData.status === "in review" ? "in_review" : "todo";
+        const dbStatus = appToDbStatusMap[taskData.status] || 'todo';
         
-        // Set form values for editing
         form.reset({
           title: taskData.title,
           description: taskData.description,
-          status: dbStatus as any, // Cast to match form schema
+          status: dbStatus as any,
           priority: taskData.priority,
           dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString().split('T')[0] : undefined,
         });
@@ -134,16 +128,13 @@ const TaskDetails: React.FC = () => {
     try {
       setLoading(true);
       
-      // Map the form status back to the app status
-      const appStatus = data.status === "done" ? "completed" : 
-                       data.status === "in_progress" ? "in progress" :
-                       data.status === "in_review" ? "in review" : "todo";
+      const appStatus = dbToAppStatusMap[data.status] || 'todo';
       
       const updatedTask: Task = {
         ...task,
         title: data.title,
         description: data.description || "",
-        status: appStatus as TaskStatus,
+        status: appStatus,
         priority: data.priority as TaskPriority,
         dueDate: data.dueDate || new Date().toISOString(),
       };
@@ -172,10 +163,10 @@ const TaskDetails: React.FC = () => {
         return 'bg-slate-400';
       case 'in progress':
         return 'bg-blue-400';
-      case 'in review':
-        return 'bg-amber-400';
       case 'completed':
         return 'bg-green-400';
+      case 'blocked':
+        return 'bg-red-400';
       default:
         return 'bg-slate-400';
     }
@@ -417,8 +408,8 @@ const TaskDetails: React.FC = () => {
                         <SelectContent>
                           <SelectItem value="todo">To Do</SelectItem>
                           <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="in_review">In Review</SelectItem>
                           <SelectItem value="done">Done</SelectItem>
+                          <SelectItem value="blocked">Blocked</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
