@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
@@ -141,6 +142,7 @@ const Team: React.FC = () => {
     if (!teamId) return;
     
     try {
+      // Generate a proper UUID using crypto.randomUUID()
       const userId = crypto.randomUUID();
       
       const { data: newMember, error } = await supabase
