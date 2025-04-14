@@ -109,6 +109,9 @@ const TaskDetails: React.FC = () => {
       if (error) throw error;
 
       if (data) {
+        console.log('here');
+        console.log(data);
+        console.log('here');
         const taskData = mapDbTaskToTask(data);
         setTask(taskData);
         
