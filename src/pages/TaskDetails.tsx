@@ -36,6 +36,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// Define the correct status mapping to match what's in the database
+const dbToAppStatusMap = {
+  'todo': 'todo',
+  'in_progress': 'in progress',
+  'in_review': 'in review',
+  'done': 'completed'
+};
+
+const appToDbStatusMap = {
+  'todo': 'todo',
+  'in progress': 'in_progress',
+  'in review': 'in_review',
+  'completed': 'done'
+};
+
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -87,11 +102,16 @@ const TaskDetails: React.FC = () => {
         const taskData = mapDbTaskToTask(data);
         setTask(taskData);
         
+        // Map the task status to match the form schema values
+        const dbStatus = taskData.status === "completed" ? "done" : 
+                         taskData.status === "in progress" ? "in_progress" :
+                         taskData.status === "in review" ? "in_review" : "todo";
+        
         // Set form values for editing
         form.reset({
           title: taskData.title,
           description: taskData.description,
-          status: taskData.status,
+          status: dbStatus as any, // Cast to match form schema
           priority: taskData.priority,
           dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString().split('T')[0] : undefined,
         });
@@ -114,11 +134,16 @@ const TaskDetails: React.FC = () => {
     try {
       setLoading(true);
       
+      // Map the form status back to the app status
+      const appStatus = data.status === "done" ? "completed" : 
+                       data.status === "in_progress" ? "in progress" :
+                       data.status === "in_review" ? "in review" : "todo";
+      
       const updatedTask: Task = {
         ...task,
         title: data.title,
         description: data.description || "",
-        status: data.status as TaskStatus,
+        status: appStatus as TaskStatus,
         priority: data.priority as TaskPriority,
         dueDate: data.dueDate || new Date().toISOString(),
       };
@@ -145,11 +170,11 @@ const TaskDetails: React.FC = () => {
     switch (status) {
       case 'todo':
         return 'bg-slate-400';
-      case 'in_progress':
+      case 'in progress':
         return 'bg-blue-400';
-      case 'in_review':
+      case 'in review':
         return 'bg-amber-400';
-      case 'done':
+      case 'completed':
         return 'bg-green-400';
       default:
         return 'bg-slate-400';

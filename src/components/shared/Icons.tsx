@@ -45,6 +45,7 @@ import {
   Shield,
   MessageSquare,
   Building,
+  Activity,
 } from "lucide-react";
 
 export const Icons = {
@@ -73,6 +74,7 @@ export const Icons = {
   warning: AlertTriangle,
   dashboard: LayoutDashboard,
   todos: ClipboardList,
+  clipboardList: ClipboardList, // Added missing icon
   users: Users,
   tag: Tags,
   filter: Filter,
@@ -96,4 +98,6 @@ export const Icons = {
   location: MapPin,
   shield: Shield,
   message: MessageSquare,
+  activity: Activity, // Added missing icon
 };
+
