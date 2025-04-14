@@ -17,7 +17,7 @@ export const mapDbTaskToTask = (dbTask: any, todos: Todo[] = [], comments: Comme
     companyId: dbTask.company_id || "",
     assignee: {
       id: dbTask.assignee_id || "",
-      name: dbTask.assignee.name || "Unassigned",
+      name: dbTask.assignee_name || "Unassigned",
       avatar: dbTask.assignee_avatar
     },
     reporter: {
