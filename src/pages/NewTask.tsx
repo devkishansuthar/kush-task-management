@@ -20,6 +20,7 @@ const NewTask: React.FC = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
+  const [assignees, setAssignees] = useState<Array<{ user_id: string; name: string; email: string }>>([]);
   
   const [task, setTask] = useState({
     title: "",
@@ -55,6 +56,31 @@ const NewTask: React.FC = () => {
     };
     
     fetchCompanies();
+  }, [toast]);
+
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('user_id, name, email');
+  
+        if (error) throw error;
+  
+        if (data) {
+          setAssignees(data);
+        }
+      } catch (error) {
+        console.error("Error fetching team members:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load assignees",
+          variant: "destructive",
+        });
+      }
+    };
+  
+    fetchTeamMembers();
   }, [toast]);
   
   const updateTask = (field: string, value: any) => {
@@ -93,7 +119,7 @@ const NewTask: React.FC = () => {
         priority: task.priority,
         status: task.status || "todo",
         due_date: task.dueDate ? task.dueDate.toISOString() : null,
-        assignee_id: null, // Not using the string IDs like "user1" anymore
+        assignee_id: task.assignee || null, // Not using the string IDs like "user1" anymore
         company_id: task.companyId || null,
         reporter_id: null, // In a real app, this would be the current user's ID
       };
@@ -255,8 +281,11 @@ const NewTask: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {/* We're not using these string values for now until we have proper UUIDs */}
-                    {/* For a real app, this would be populated from the database */}
+                    {assignees.map((member) => (
+                      <SelectItem key={member.user_id} value={member.user_id}>
+                        {member.name || member.email}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
