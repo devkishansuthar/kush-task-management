@@ -63,7 +63,7 @@ const NewTask: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('team_members')
-          .select('user_id, name, email');
+          .select('id, name, email');
   
         if (error) throw error;
   
@@ -282,7 +282,7 @@ const NewTask: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>
                     {assignees.map((member) => (
-                      <SelectItem key={member.user_id} value={member.user_id}>
+                      <SelectItem key={member.id} value={member.id}>
                         {member.name || member.email}
                       </SelectItem>
                     ))}
