@@ -101,7 +101,7 @@ const TaskDetails: React.FC = () => {
         setTask(taskData);
         
         const dbStatus = appToDbStatusMap[taskData.status] || 'todo';
-        
+        console.log(taskData)
         form.reset({
           title: taskData.title,
           description: taskData.description,
