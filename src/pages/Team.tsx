@@ -151,7 +151,6 @@ const Team: React.FC = () => {
           name: data.name,
           role: data.role,
           email: data.email,
-          user_id: userId,
           team_id: teamId
         })
         .select()
