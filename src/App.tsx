@@ -24,6 +24,7 @@ import Companies from "@/pages/Companies";
 import CompanyDetails from "@/pages/CompanyDetails";
 import AddCompany from "@/pages/AddCompany";
 import TaskDetails from "@/pages/TaskDetails";
+import EditCompany from "@/pages/EditCompany";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
                 <Route path="/companies" element={<Companies />} />
                 <Route path="/companies/new" element={<AddCompany />} />
                 <Route path="/companies/:id" element={<CompanyDetails />} />
+                <Route path="/companies/:id/edit" element={<EditCompany />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>

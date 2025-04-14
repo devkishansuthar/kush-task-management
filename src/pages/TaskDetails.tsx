@@ -1,308 +1,455 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "@/integrations/supabase/client";
+import { mapDbTaskToTask, mapTaskToDbTask } from "@/utils/supabaseAdapters";
+import { Task, TaskPriority, TaskStatus } from "@/types/task";
 import PageHeader from "@/components/shared/PageHeader";
 import { Icons } from "@/components/shared/Icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Todo, TaskStatus, TaskPriority } from "@/types/task";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { mapDbTodoToTodo } from "@/utils/supabaseAdapters";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  status: z.enum(["todo", "in_progress", "in_review", "done"]),
+  priority: z.enum(["low", "medium", "high", "urgent"]),
+  dueDate: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 const TaskDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  const [task, setTask] = useState<any>(null);
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [newTodo, setNewTodo] = useState("");
+  const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
-  
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      status: "todo",
+      priority: "medium",
+      dueDate: "",
+    },
+  });
+
   useEffect(() => {
     if (id) {
       fetchTaskDetails();
     }
   }, [id]);
-  
+
   const fetchTaskDetails = async () => {
+    if (!id) return;
+
     try {
       setLoading(true);
-      
-      // Fetch task details
-      const { data: taskData, error: taskError } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .eq('id', id)
         .single();
-      
-      if (taskError) throw taskError;
-      
-      if (taskData) {
+
+      if (error) throw error;
+
+      if (data) {
+        const taskData = mapDbTaskToTask(data);
         setTask(taskData);
         
-        // Fetch todos for this task
-        const { data: todosData, error: todosError } = await supabase
-          .from('todos')
-          .select('*')
-          .eq('task_id', id);
-        
-        if (todosError) throw todosError;
-        
-        if (todosData) {
-          // Map the database todo objects to the Todo interface
-          const mappedTodos: Todo[] = todosData.map((todo) => mapDbTodoToTodo(todo));
-          setTodos(mappedTodos);
-        }
+        // Set form values for editing
+        form.reset({
+          title: taskData.title,
+          description: taskData.description,
+          status: taskData.status,
+          priority: taskData.priority,
+          dueDate: taskData.dueDate ? new Date(taskData.dueDate).toISOString().split('T')[0] : undefined,
+        });
       }
     } catch (error) {
-      console.error("Error fetching task details:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load task details",
-        variant: "destructive",
-      });
+      console.error("Error fetching task:", error);
+      toast.error("Failed to load task details");
     } finally {
       setLoading(false);
     }
   };
-  
-  const handleAddTodo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTodo.trim() || !id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('todos')
-        .insert([
-          { 
-            content: newTodo, 
-            task_id: id,
-            completed: false 
-          }
-        ])
-        .select();
-      
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const newMappedTodo = mapDbTodoToTodo(data[0]);
-        setTodos([...todos, newMappedTodo]);
-        setNewTodo("");
-      }
-    } catch (error) {
-      console.error("Error adding todo:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add todo item",
-        variant: "destructive",
-      });
-    }
+
+  const handleEdit = () => {
+    setIsEditDialogOpen(true);
   };
-  
-  const handleToggleTodo = async (todoId: string, completed: boolean) => {
+
+  const onSubmit = async (data: FormValues) => {
+    if (!id || !task) return;
+
     try {
+      setLoading(true);
+      
+      const updatedTask: Task = {
+        ...task,
+        title: data.title,
+        description: data.description || "",
+        status: data.status as TaskStatus,
+        priority: data.priority as TaskPriority,
+        dueDate: data.dueDate || new Date().toISOString(),
+      };
+      
       const { error } = await supabase
-        .from('todos')
-        .update({ completed })
-        .eq('id', todoId);
-      
+        .from('tasks')
+        .update(mapTaskToDbTask(updatedTask))
+        .eq('id', id);
+
       if (error) throw error;
-      
-      setTodos(todos.map(todo => 
-        todo.id === todoId ? { ...todo, completed } : todo
-      ));
+
+      setTask(updatedTask);
+      setIsEditDialogOpen(false);
+      toast.success("Task updated successfully");
     } catch (error) {
-      console.error("Error toggling todo:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update todo item",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const getStatusVariant = (status: TaskStatus) => {
-    switch (status) {
-      case "completed":
-        return "outline";
-      case "in progress":
-        return "secondary";
-      case "todo":
-        return "default";
-      case "blocked":
-        return "destructive";
-      default:
-        return "secondary";
-    }
-  };
-  
-  const getPriorityVariant = (priority: TaskPriority) => {
-    switch (priority) {
-      case "low":
-        return "outline";
-      case "medium":
-        return "secondary";
-      case "high":
-        return "default";
-      case "urgent":
-        return "destructive";
-      default:
-        return "outline";
+      console.error("Error updating task:", error);
+      toast.error("Failed to update task");
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'todo':
+        return 'bg-slate-400';
+      case 'in_progress':
+        return 'bg-blue-400';
+      case 'in_review':
+        return 'bg-amber-400';
+      case 'done':
+        return 'bg-green-400';
+      default:
+        return 'bg-slate-400';
+    }
+  };
+
+  const getPriorityVariant = (priority: string) => {
+    switch (priority) {
+      case 'low':
+        return 'default';
+      case 'medium':
+        return 'secondary';
+      case 'high':
+        return 'warning';
+      case 'urgent':
+        return 'destructive';
+      default:
+        return 'default';
+    }
+  };
+
+  const getFormattedStatus = (status: string) => {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  if (loading && !task) {
     return (
-      <div className="container max-w-7xl mx-auto px-4 py-12 flex justify-center">
+      <div className="container mx-auto px-4 py-12 flex justify-center">
         <Icons.spinner className="h-8 w-8 animate-spin" />
       </div>
     );
   }
-  
+
   if (!task) {
     return (
-      <div className="container max-w-7xl mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold mb-4">Task Not Found</h1>
-        <p className="mb-6">The task you're looking for doesn't exist or has been removed.</p>
-        <Button onClick={() => navigate("/tasks")}>
-          <Icons.chevronLeft className="mr-2 h-4 w-4" />
-          Back to Tasks
-        </Button>
+      <div className="container mx-auto px-4 py-12">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">Task not found</h2>
+          <p className="mt-2 text-muted-foreground">
+            The task you are looking for does not exist or has been removed.
+          </p>
+          <Button
+            className="mt-4"
+            onClick={() => navigate('/tasks')}
+          >
+            Back to Tasks
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container max-w-7xl mx-auto px-4">
+    <div className="container mx-auto px-4">
       <PageHeader
         title={task.title}
-        description={task.description || "No description provided"}
-        icon={<Icons.tasks className="h-6 w-6" />}
+        description="Task details and management"
+        icon={<Icons.clipboardList className="h-6 w-6" />}
+        breadcrumbs={[
+          { label: "Tasks", href: "/tasks" },
+          { label: task.title, href: `/tasks/${task.id}` },
+        ]}
         action={{
           label: "Edit Task",
-          onClick: () => {},
+          onClick: handleEdit,
           icon: <Icons.edit className="mr-2 h-4 w-4" />,
         }}
       />
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Todo Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {todos.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No todo items yet</p>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl">Details</CardTitle>
+                <div className="flex space-x-2">
+                  <div className={`h-3 w-3 rounded-full ${getStatusColor(task.status)}`}></div>
+                  <span className="text-sm font-medium">{getFormattedStatus(task.status)}</span>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {todos.map((todo) => (
-                    <div key={todo.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={todo.id}
-                        checked={todo.completed}
-                        onCheckedChange={(checked) => 
-                          handleToggleTodo(todo.id, checked === true)
-                        }
-                      />
-                      <Label
-                        htmlFor={todo.id}
-                        className={`flex-1 ${
-                          todo.completed ? "line-through text-muted-foreground" : ""
-                        }`}
-                      >
-                        {todo.content}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              <form onSubmit={handleAddTodo} className="flex space-x-2 mt-6">
-                <Input
-                  placeholder="Add a new todo item"
-                  value={newTodo}
-                  onChange={(e) => setNewTodo(e.target.value)}
-                  className="flex-1"
-                />
-                <Button type="submit" size="sm">
-                  <Icons.add className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Details</CardTitle>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">{task.title}</h3>
+                <p className="text-muted-foreground whitespace-pre-line">
+                  {task.description || "No description provided."}
+                </p>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Priority</p>
+                  <Badge variant={getPriorityVariant(task.priority) as any} className="mt-1">
+                    {task.priority.toUpperCase()}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Due Date</p>
+                  <p className="text-sm mt-1">
+                    {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={getStatusVariant(task.status as TaskStatus)} className="mt-1">
-                    {task.status}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Priority</p>
-                  <Badge variant={getPriorityVariant(task.priority as TaskPriority)} className="mt-1">
-                    {task.priority}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Due Date</p>
-                  <p className="text-sm font-medium">
-                    {task.due_date ? new Date(task.due_date).toLocaleDateString() : "No due date"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Assignee</p>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Icons.user className="h-4 w-4" />
-                    </div>
-                    <span className="text-sm font-medium">
-                      {task.assignee_name || "Unassigned"}
-                    </span>
+                  <p className="text-sm font-medium text-muted-foreground">Assignee</p>
+                  <div className="flex items-center mt-1">
+                    <Avatar className="h-6 w-6 mr-2">
+                      <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
+                      <AvatarFallback>
+                        {task.assignee.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{task.assignee.name}</span>
                   </div>
                 </div>
+
                 <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
-                  <p className="text-sm font-medium">
-                    {new Date(task.created_at).toLocaleDateString()}
-                  </p>
+                  <p className="text-sm font-medium text-muted-foreground">Reporter</p>
+                  <div className="flex items-center mt-1">
+                    <Avatar className="h-6 w-6 mr-2">
+                      <AvatarImage src={task.reporter.avatar} alt={task.reporter.name} />
+                      <AvatarFallback>
+                        {task.reporter.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{task.reporter.name}</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Company</p>
-                  {task.company_id ? (
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto text-sm font-medium"
-                      onClick={() => navigate(`/companies/${task.company_id}`)}
-                    >
-                      View Company
-                    </Button>
-                  ) : (
-                    <p className="text-sm font-medium">Not assigned</p>
-                  )}
-                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Tabs defaultValue="comments" className="mt-6">
+            <TabsList>
+              <TabsTrigger value="comments">Comments</TabsTrigger>
+              <TabsTrigger value="todos">Todos</TabsTrigger>
+              <TabsTrigger value="attachments">Attachments</TabsTrigger>
+            </TabsList>
+            <TabsContent value="comments" className="mt-4">
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-center text-muted-foreground">No comments yet</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="todos" className="mt-4">
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-center text-muted-foreground">No todos yet</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="attachments" className="mt-4">
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-center text-muted-foreground">No attachments yet</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <Icons.activity className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                <p>No activity recorded yet</p>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>
+              Update the task details and information
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter task title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Enter task description" 
+                        className="min-h-[100px]" 
+                        {...field} 
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="todo">To Do</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="in_review">In Review</SelectItem>
+                          <SelectItem value="done">Done</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Priority</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Due Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} value={field.value || ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
