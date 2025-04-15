@@ -25,7 +25,7 @@ const NewTask: React.FC = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
-  const [assignees, setAssignees] = useState<TeamMember[]>([]);
+  const [assignees, setAssignees] = useState<Array<{ user_id: string; name: string; email: string }>>([]);
   
   const [task, setTask] = useState({
     title: "",
@@ -73,7 +73,7 @@ const NewTask: React.FC = () => {
         if (error) throw error;
   
         if (data) {
-          setAssignees(data as TeamMember[]);
+          setAssignees(data);
         }
       } catch (error) {
         console.error("Error fetching team members:", error);
