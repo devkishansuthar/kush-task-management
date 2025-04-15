@@ -302,19 +302,6 @@ const TaskDetails: React.FC = () => {
                     <span className="text-sm">{task.assignee.name}</span>
                   </div>
                 </div>
-
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Reporter</p>
-                  <div className="flex items-center mt-1">
-                    <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={task.reporter.avatar} alt={task.reporter.name} />
-                      <AvatarFallback>
-                        {task.reporter.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{task.reporter.name}</span>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>

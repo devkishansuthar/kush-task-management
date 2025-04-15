@@ -108,7 +108,7 @@ const Tasks: React.FC = () => {
       filteredTasks = filteredTasks.filter(
         task => task.assignee.id === user?.id
       );
-    } else if (currentFilters.assignee === "unassigned") {
+    } else if (currentFilters.assignee === "Select") {
       filteredTasks = filteredTasks.filter(
         task => !task.assignee.id
       );

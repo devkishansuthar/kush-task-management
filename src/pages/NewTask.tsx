@@ -278,14 +278,14 @@ const NewTask: React.FC = () => {
               <div className="space-y-2">
                 <Label htmlFor="assignee">Assignee</Label>
                 <Select 
-                  value={task.assignee || "unassigned"} 
-                  onValueChange={(value) => updateTask("assignee", value === "unassigned" ? null : value)}
+                  value={task.assignee || "Select"} 
+                  onValueChange={(value) => updateTask("assignee", value === "Select" ? null : value)}
                 >
                   <SelectTrigger id="assignee">
                     <SelectValue placeholder="Assign to" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    <SelectItem value="Select">Select</SelectItem>
                     {assignees.map((member) => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.name || member.email}

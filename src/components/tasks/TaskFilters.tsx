@@ -94,7 +94,7 @@ const TaskFilters: React.FC<TaskFiltersProps> = ({
             <SelectContent>
               <SelectItem value="all">All Assignees</SelectItem>
               <SelectItem value="me">Assigned to Me</SelectItem>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
+              <SelectItem value="Select">Unassigned</SelectItem>
             </SelectContent>
           </Select>
         </div>
