@@ -1,20 +1,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { Session } from '@supabase/supabase-js';
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-export type UserRole = "superadmin" | "admin" | "user";
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  companyId?: string;
-  companyName?: string;
-}
+import type { AuthUser, UserRole, Profile } from "@/types/auth";
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
+  profile: Profile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string, role: UserRole) => Promise<void>;
@@ -31,79 +24,75 @@ export const useAuth = () => {
   return context;
 };
 
-// Mock user data
-const MOCK_USERS = [
-  {
-    id: "1",
-    name: "Super Admin",
-    email: "superadmin@example.com",
-    password: "password",
-    role: "superadmin" as UserRole,
-  },
-  {
-    id: "2",
-    name: "Company Admin",
-    email: "admin@example.com",
-    password: "password",
-    role: "admin" as UserRole,
-    companyId: "company1",
-    companyName: "Acme Inc.",
-  },
-  {
-    id: "3",
-    name: "Regular User",
-    email: "user@example.com",
-    password: "password",
-    role: "user" as UserRole,
-    companyId: "company1",
-    companyName: "Acme Inc.",
-  },
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      if (data) setProfile(data as Profile);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
     }
-    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string, role: UserRole) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // In a real app, this would be an API call to authenticate the user
-      const foundUser = MOCK_USERS.find(
-        (u) => u.email === email && u.password === password && u.role === role
-      );
-      
-      if (foundUser) {
-        const { password, ...userWithoutPassword } = foundUser;
-        setUser(userWithoutPassword);
-        localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      if (data.user) {
+        await fetchProfile(data.user.id);
         toast.success("Login successful");
-      } else {
-        toast.error("Invalid credentials");
-        throw new Error("Invalid credentials");
       }
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch (error: any) {
+      toast.error(error.message || "Login failed");
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem("user");
+    setProfile(null);
     toast.success("Logged out successfully");
   };
 
@@ -111,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
+        profile,
         isAuthenticated: !!user,
         isLoading,
         login,

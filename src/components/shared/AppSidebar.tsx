@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const AppSidebar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const location = useLocation();
   
   // Base navigation items
@@ -44,7 +43,7 @@ const AppSidebar: React.FC = () => {
   // Combine navigation items based on user role
   const navItems = [
     ...baseNavItems,
-    ...(user ? roleNavItems[user.role] : []),
+    ...(profile ? roleNavItems[profile.role as keyof typeof roleNavItems] || [] : []),
   ];
   
   // Account navigation items
@@ -116,17 +115,17 @@ const AppSidebar: React.FC = () => {
       </SidebarContent>
       
       <SidebarFooter className="p-3">
-        {user && (
+        {profile && (
           <div className="flex flex-col space-y-2">
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
                 <Icons.user className="h-5 w-5" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-medium">{user.name}</span>
+                <span className="text-sm font-medium">{profile.name}</span>
                 <span className="text-xs text-muted-foreground capitalize">
-                  {user.role}
-                  {user.companyName && ` • ${user.companyName}`}
+                  {profile.role}
+                  {profile.companyName && ` • ${profile.companyName}`}
                 </span>
               </div>
             </div>
