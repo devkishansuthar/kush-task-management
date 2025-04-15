@@ -113,7 +113,7 @@ const TaskDetails: React.FC = () => {
         console.log(data);
         console.log('here');
         const taskData = mapDbTaskToTask(data);
-        setTask(taskData);
+        setTask(data);
         
         const dbStatus = appToDbStatusMap[taskData.status] || 'todo';
         console.log(taskData)
