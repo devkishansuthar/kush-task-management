@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
@@ -15,12 +14,18 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+}
+
 const NewTask: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
-  const [assignees, setAssignees] = useState<Array<{ user_id: string; name: string; email: string }>>([]);
+  const [assignees, setAssignees] = useState<TeamMember[]>([]);
   
   const [task, setTask] = useState({
     title: "",
@@ -68,7 +73,7 @@ const NewTask: React.FC = () => {
         if (error) throw error;
   
         if (data) {
-          setAssignees(data);
+          setAssignees(data as TeamMember[]);
         }
       } catch (error) {
         console.error("Error fetching team members:", error);
@@ -119,9 +124,9 @@ const NewTask: React.FC = () => {
         priority: task.priority,
         status: task.status || "todo",
         due_date: task.dueDate ? task.dueDate.toISOString() : null,
-        assignee_id: task.assignee || null, // Not using the string IDs like "user1" anymore
+        assignee_id: task.assignee || null,
         company_id: task.companyId || null,
-        reporter_id: null, // In a real app, this would be the current user's ID
+        reporter_id: null,
       };
       
       // Insert into Supabase

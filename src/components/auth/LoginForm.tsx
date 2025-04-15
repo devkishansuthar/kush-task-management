@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth, UserRole } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
+import { UserRole } from "@/types/auth";
 import { Icons } from "@/components/shared/Icons";
 
 const LoginForm = () => {
@@ -19,7 +20,7 @@ const LoginForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(email, password, role);
+      await login(email, password);
       navigate("/dashboard");
     } catch (error) {
       console.error("Login failed", error);

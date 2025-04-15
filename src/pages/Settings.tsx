@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/shared/Icons";
@@ -74,7 +73,7 @@ const Settings = () => {
                 onClick={() => setIsEditing(!isEditing)}
               >
                 {isEditing ? (
-                  <Icons.x className="h-4 w-4 mr-2" />
+                  <Icons.close className="h-4 w-4 mr-2" />
                 ) : (
                   <Icons.edit className="h-4 w-4 mr-2" />
                 )}

@@ -12,12 +12,12 @@ import { Icons } from "@/components/shared/Icons";
 import { getTaskSummaryData, mockActivities, mockTasks } from "@/services/mockData";
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   
   // Get tasks for the current user's company
-  const tasks = user?.companyId 
-    ? mockTasks.filter(task => task.companyId === user.companyId)
+  const tasks = profile?.companyId 
+    ? mockTasks.filter(task => task.companyId === profile.companyId)
     : mockTasks;
   
   // Calculate task statistics
@@ -26,11 +26,11 @@ const Dashboard: React.FC = () => {
   const completedCount = tasks.filter(task => task.status === "completed").length;
   
   // Get task summary data for charts
-  const taskSummary = getTaskSummaryData(user?.role !== "superadmin" ? user?.companyId : undefined);
+  const taskSummary = getTaskSummaryData(profile?.role !== "superadmin" ? profile?.companyId : undefined);
   
   // Select role-appropriate greeting
   const getRoleSpecificContent = () => {
-    switch (user?.role) {
+    switch (profile?.role) {
       case "superadmin":
         return {
           title: "SuperAdmin Dashboard",
@@ -46,7 +46,7 @@ const Dashboard: React.FC = () => {
         };
       case "admin":
         return {
-          title: `${user.companyName} Dashboard`,
+          title: `${profile.companyName} Dashboard`,
           description: "Monitor your team's performance and tasks",
           stats: [
             {
@@ -64,7 +64,7 @@ const Dashboard: React.FC = () => {
           stats: [
             {
               title: "My Tasks",
-              value: tasks.filter(task => task.assignee.id === user?.id).length.toString(),
+              value: tasks.filter(task => task.assignee.id === profile?.id).length.toString(),
               icon: <Icons.tasks className="h-4 w-4" />,
             },
           ],
